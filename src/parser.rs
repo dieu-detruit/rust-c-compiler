@@ -170,11 +170,11 @@ pub fn gen(node: Node) {
     }
 }
 
-pub fn sprint_node(node: Node) -> String {
+pub fn sprint_node(node: &Node) -> String {
     match node {
         Node::Num(n) => n.to_string(),
         Node::Boolean(b) => {
-            if b {
+            if *b {
                 String::from("True")
             } else {
                 String::from("False")
@@ -189,9 +189,9 @@ pub fn sprint_node(node: Node) -> String {
                 BinaryType::Div => String::from("/"),
                 _ => String::from(""),
             } + "("
-                + &sprint_node(binary_arg.0)
+                + &sprint_node(&binary_arg.0)
                 + ","
-                + &sprint_node(binary_arg.1)
+                + &sprint_node(&binary_arg.1)
                 + ")"
         }
         _ => String::from(""),

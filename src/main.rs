@@ -10,10 +10,9 @@ fn main() {
     println!("main:");
 
     let parent_node = parse(prog_string.as_str());
+    eprintln!("debug: {}", &sprint_node(&parent_node));
 
     gen(parent_node);
-    //let output = String::from("debug: ") + &sprint_node(parent_node);
-    //println!("{}", output);
 
     println!("    pop rax");
     println!("    ret");

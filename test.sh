@@ -1,9 +1,9 @@
 #!/usr/bin/zsh
 
-expr="1 + 2 * (6 - 4) - 4"
-cargo run -- $expr > out.S | tail -f
+expr="8 + 2 * (2 - 1)"
+echo input: $expr
+cargo run -- $expr > out.S
 cc out.S
 ./a.out
 
-echo input: $expr
 echo output: $?
