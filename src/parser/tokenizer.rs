@@ -8,7 +8,7 @@ pub enum Token {
     Lt,
     Gt,
     Equal,
-    NotEqual,
+    Exclamation,
     Num(i32),
     Eof,
 }
@@ -42,43 +42,27 @@ impl<'a> Iterator for TokenIter<'a> {
             return None;
         }
 
-        if self.s.as_bytes()[0] == b'+' {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::Plus);
-        }
+        let first_byte = self.s.as_bytes()[0];
 
-        if self.s.as_bytes()[0] == b'-' {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::Minus);
-        }
-
-        if self.s.as_bytes()[0] == b'*' {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::Asterisk);
-        }
-
-        if self.s.as_bytes()[0] == b'/' {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::Slash);
-        }
-
-        if self.s.as_bytes()[0] == b'(' {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::LeftParen);
-        }
-
-        if self.s.as_bytes()[0] == b')' {
-            self.s = self.s.split_at(1).1;
-            return Some(Token::RightParen);
-        }
-
-        let (digit_s, remain_s) = split_digit(self.s);
-        if !digit_s.is_empty() {
-            self.s = remain_s;
-            return Some(Token::Num(i32::from_str_radix(digit_s, 10).unwrap()));
-        }
-
-        panic!("Invalid token stream")
+        return match first_byte {
+            b'+' => Some(Token::Plus),
+            b'-' => Some(Token::Minus),
+            b'*' => Some(Token::Asterisk),
+            b'/' => Some(Token::Slash),
+            b'(' => Some(Token::LeftParen),
+            b')' => Some(Token::RightParen),
+            b'<' => Some(Token::Lt),
+            b'>' => Some(Token::Gt),
+            b'=' => Some(Token::Equal),
+            b'!' => Some(Token::Exclamation),
+            b'0'..=b'9' => {
+                let (digit_s, remain_s) = split_digit(self.s);
+                self.s = remain_s;
+                Some(Token::Num(i32::from_str_radix(digit_s, 10).unwrap()))
+            }
+            b'a'..=b'z' => None,
+            _ => None,
+        };
     }
 }
 
