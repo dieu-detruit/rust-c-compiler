@@ -6,7 +6,8 @@ use tokenizer::{sprint_token, sprint_token_iter, tokenize, Token, TokenIter};
  * 生成文法
  *
  * expr = mul ( "+" mul | "-" mul )*
- * mul = primary ( "*" primary | "/" primary )*
+ * mul = unary ( "*" unary | "/" unary )*
+ * unary = ( "+" | "-" )? primary
  * primary = num | "(" expr ")"
  *
  */
@@ -19,8 +20,6 @@ pub enum Node {
 }
 
 pub enum UnaryType {
-    Plus,
-    Minus,
     Not,
 }
 
@@ -71,8 +70,7 @@ impl Parser<'_> {
     }
     pub fn mul(&mut self) -> Node {
         eprintln!("mul() called");
-        let mut node = self.primary();
-        eprintln!("primary() returned");
+        let mut node = self.unary();
 
         loop {
             let mut token_iter_cp = self.token_iter.clone();
@@ -83,18 +81,39 @@ impl Parser<'_> {
                 Token::Asterisk => {
                     eprintln!("Asterisk");
                     self.token_iter.next();
-                    node = Node::Binary(Box::new((node, self.primary())), BinaryType::Mul)
+                    node = Node::Binary(Box::new((node, self.unary())), BinaryType::Mul)
                 }
                 Token::Slash => {
                     eprintln!("Slash");
                     self.token_iter.next();
-                    node = Node::Binary(Box::new((node, self.primary())), BinaryType::Div)
+                    node = Node::Binary(Box::new((node, self.unary())), BinaryType::Div)
                 }
                 _ => {
                     return node;
                 }
             };
         }
+    }
+    pub fn unary(&mut self) -> Node {
+        eprintln!("unary() called");
+
+        let mut token_iter_cp = self.token_iter.clone();
+        let token = token_iter_cp.next().unwrap_or(Token::Eof);
+        eprintln!("current token: {}", sprint_token(&token));
+
+        return match token {
+            Token::Plus => {
+                eprintln!("UnaryPlus");
+                self.token_iter.next();
+                self.primary()
+            }
+            Token::Minus => {
+                eprintln!("UnaryMinus");
+                self.token_iter.next();
+                Node::Binary(Box::new((Node::Num(0), self.primary())), BinaryType::Sub)
+            }
+            _ => self.primary(),
+        };
     }
     pub fn primary(&mut self) -> Node {
         let token = self.token_iter.next().unwrap_or(Token::Eof);
