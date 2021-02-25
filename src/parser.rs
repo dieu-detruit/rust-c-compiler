@@ -1,12 +1,12 @@
 pub mod tokenizer;
 
-use tokenizer::{tokenize, Token, TokenIter};
+use tokenizer::{sprint_token, sprint_token_iter, tokenize, Token, TokenIter};
 
 /*
  * 生成文法
  *
  * expr = mul ( "+" mul | "-" mul )*
- * mul = num ( "*" num | "/" num )*
+ * mul = primary ( "*" primary | "/" primary )*
  * primary = num | "(" expr ")"
  *
  */
@@ -37,34 +37,73 @@ pub enum BinaryType {
     GtEq,
 }
 
-pub struct Tokenizer<'a> {
-    token_iter: &'a mut TokenIter<'a>,
+pub struct Parser<'a> {
+    token_iter: TokenIter<'a>,
 }
 
-impl Tokenizer<'_> {
+impl Parser<'_> {
     pub fn expr(&mut self) -> Node {
-        let node_mul = self.mul();
+        eprintln!("expr() called");
+        let mut node = self.mul();
+        eprintln!("mul() returned");
 
-        match self.token_iter.next().unwrap() {
-            Token::Plus => Node::Binary(Box::new((node_mul, self.mul())), BinaryType::Add),
-            Token::Minus => Node::Binary(Box::new((node_mul, self.mul())), BinaryType::Sub),
-            _ => return node_mul,
+        loop {
+            let mut token_iter_cp = self.token_iter.clone();
+            let token = token_iter_cp.next().unwrap_or(Token::Eof);
+            eprintln!("current token: {}", sprint_token(&token));
+
+            match token {
+                Token::Plus => {
+                    eprintln!("Plus");
+                    self.token_iter.next();
+                    node = Node::Binary(Box::new((node, self.mul())), BinaryType::Add);
+                }
+                Token::Minus => {
+                    eprintln!("Minus");
+                    self.token_iter.next();
+                    node = Node::Binary(Box::new((node, self.mul())), BinaryType::Sub);
+                }
+                _ => {
+                    return node;
+                }
+            };
         }
     }
     pub fn mul(&mut self) -> Node {
-        let node_primary = self.primary();
+        eprintln!("mul() called");
+        let mut node = self.primary();
+        eprintln!("primary() returned");
 
-        match self.token_iter.next().unwrap() {
-            Token::Asterisk => {
-                Node::Binary(Box::new((node_primary, self.primary())), BinaryType::Mul)
-            }
-            Token::Slash => Node::Binary(Box::new((node_primary, self.primary())), BinaryType::Div),
-            _ => node_primary,
+        loop {
+            let mut token_iter_cp = self.token_iter.clone();
+            let token = token_iter_cp.next().unwrap_or(Token::Eof);
+            eprintln!("current token: {}", sprint_token(&token));
+
+            match token {
+                Token::Asterisk => {
+                    eprintln!("Asterisk");
+                    self.token_iter.next();
+                    node = Node::Binary(Box::new((node, self.primary())), BinaryType::Mul)
+                }
+                Token::Slash => {
+                    eprintln!("Slash");
+                    self.token_iter.next();
+                    node = Node::Binary(Box::new((node, self.primary())), BinaryType::Div)
+                }
+                _ => {
+                    return node;
+                }
+            };
         }
     }
     pub fn primary(&mut self) -> Node {
-        match self.token_iter.next().unwrap() {
+        let token = self.token_iter.next().unwrap_or(Token::Eof);
+        eprintln!("current token: {}", sprint_token(&token));
+
+        eprintln!("primary() called");
+        return match token {
             Token::LeftParen => {
+                eprintln!("Left Paren");
                 let node_expr = self.expr();
                 if let Token::RightParen = self.token_iter.next().unwrap() {
                     node_expr
@@ -72,52 +111,89 @@ impl Tokenizer<'_> {
                     panic!("Invalid Input");
                 }
             }
-            Token::Num(n) => Node::Num(n),
+            Token::Num(n) => {
+                eprintln!("Num");
+                Node::Num(n)
+            }
             _ => {
                 panic!("Invalid Input");
             }
-        }
+        };
     }
 }
 
 pub fn parse(prog: &str) -> Node {
     let mut token_iter = tokenize(prog);
-    let mut tokenizer = Tokenizer {
-        token_iter: &mut token_iter,
+    let output = sprint_token_iter(token_iter);
+    eprintln!("{}", output);
+    token_iter = tokenize(prog);
+
+    let mut parser = Parser {
+        token_iter: token_iter,
     };
-    return tokenizer.expr();
+    return parser.expr();
 }
 
 pub fn gen(node: Node) {
     match node {
-        Node::Unary(unary_arg, unary_type) => {
+        Node::Unary(unary_arg, _unary_type) => {
             gen(*unary_arg);
-            match unary_type {
+            match _unary_type {
                 _ => {}
             }
         }
         Node::Binary(binary_arg, binary_type) => {
             gen(binary_arg.0);
             gen(binary_arg.1);
+            println!("    pop rdi");
+            println!("    pop rax");
             match binary_type {
                 BinaryType::Add => {
-                    println!("  add rax, rdi");
+                    println!("    add rax, rdi");
                 }
                 BinaryType::Sub => {
-                    println!("  sub rax, rdi");
+                    println!("    sub rax, rdi");
                 }
                 BinaryType::Mul => {
-                    println!("  imul rax, rdi");
+                    println!("    imul rax, rdi");
                 }
                 BinaryType::Div => {
-                    println!("  cqo");
-                    println!("  idiv rdi");
+                    println!("    cqo");
+                    println!("    idiv rdi");
                 }
                 _ => {}
             }
+            println!("    push rax");
         }
-        Node::Num(n) => println!("  push {}", n),
+        Node::Num(n) => println!("    push {}", n),
         _ => {}
     }
-    println!("  push rax");
+}
+
+pub fn sprint_node(node: Node) -> String {
+    match node {
+        Node::Num(n) => n.to_string(),
+        Node::Boolean(b) => {
+            if b {
+                String::from("True")
+            } else {
+                String::from("False")
+            }
+        }
+        Node::Unary(_unary_arg, _unary_type) => String::from(""),
+        Node::Binary(binary_arg, binary_type) => {
+            return match binary_type {
+                BinaryType::Add => String::from("+"),
+                BinaryType::Sub => String::from("-"),
+                BinaryType::Mul => String::from("*"),
+                BinaryType::Div => String::from("/"),
+                _ => String::from(""),
+            } + "("
+                + &sprint_node(binary_arg.0)
+                + ","
+                + &sprint_node(binary_arg.1)
+                + ")"
+        }
+        _ => String::from(""),
+    }
 }
