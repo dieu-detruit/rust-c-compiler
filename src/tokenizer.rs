@@ -10,6 +10,7 @@ pub enum Token {
     Equal,
     Exclamation,
     Num(i32),
+    Identity(String),
     Eof,
 }
 
@@ -43,32 +44,72 @@ impl<'a> Iterator for TokenIter<'a> {
         }
 
         let first_byte = self.s.as_bytes()[0];
-
         return match first_byte {
-            b'+' => Some(Token::Plus),
-            b'-' => Some(Token::Minus),
-            b'*' => Some(Token::Asterisk),
-            b'/' => Some(Token::Slash),
-            b'(' => Some(Token::LeftParen),
-            b')' => Some(Token::RightParen),
-            b'<' => Some(Token::Lt),
-            b'>' => Some(Token::Gt),
-            b'=' => Some(Token::Equal),
-            b'!' => Some(Token::Exclamation),
+            b'+' => self.tokenize_byte(Token::Plus),
+            b'-' => self.tokenize_byte(Token::Minus),
+            b'*' => self.tokenize_byte(Token::Asterisk),
+            b'/' => self.tokenize_byte(Token::Slash),
+            b'(' => self.tokenize_byte(Token::LeftParen),
+            b')' => self.tokenize_byte(Token::RightParen),
+            b'<' => self.tokenize_byte(Token::Lt),
+            b'>' => self.tokenize_byte(Token::Gt),
+            b'=' => self.tokenize_byte(Token::Equal),
+            b'!' => self.tokenize_byte(Token::Exclamation),
             b'0'..=b'9' => {
                 let (digit_s, remain_s) = split_digit(self.s);
                 self.s = remain_s;
                 Some(Token::Num(i32::from_str_radix(digit_s, 10).unwrap()))
             }
-            b'a'..=b'z' => None,
+            b'a'..=b'z' | b'_' => {
+                let (ident_s, remain_s) = split_identity(self.s);
+                self.s = remain_s;
+                Some(Token::Identity(ident_s.to_string()))
+            }
             _ => None,
         };
+    }
+}
+
+impl<'a> TokenIter<'a> {
+    pub fn tokenize_byte(&mut self, token: Token) -> Option<Token> {
+        self.s = self.s.split_at(1).1;
+        Some(token)
+    }
+
+    // skipで型が変わるのが面倒なので実装
+    pub fn ignore(&mut self, n: usize) {
+        for _i in 0..n {
+            self.s = self.s.trim_start();
+            if self.s.is_empty() {
+                return;
+            }
+
+            match self.s.as_bytes()[0] {
+                b'+' | b'-' | b'*' | b'/' | b'(' | b')' | b'<' | b'>' | b'=' | b'!' => {
+                    self.s = self.s.split_at(1).1;
+                }
+                b'0'..=b'9' => {
+                    self.s = split_digit(self.s).1;
+                }
+                b'a'..=b'z' | b'_' => {
+                    self.s = split_identity(self.s).1;
+                }
+                _ => {}
+            };
+        }
     }
 }
 
 pub fn split_digit(s: &str) -> (&str, &str) {
     let first_non_num_idx = s.find(|c| !char::is_numeric(c)).unwrap_or(s.len());
     s.split_at(first_non_num_idx)
+}
+
+pub fn split_identity(s: &str) -> (&str, &str) {
+    let first_non_ident_idx = s
+        .find(|c: char| !char::is_alphabetic(c) && !char::is_numeric(c) && c != '_')
+        .unwrap_or(s.len());
+    s.split_at(first_non_ident_idx)
 }
 
 pub fn sprint_token(token: &Token) -> String {
@@ -80,6 +121,10 @@ pub fn sprint_token(token: &Token) -> String {
         Token::Slash => String::from("Mark /, "),
         Token::LeftParen => String::from("Mark (, "),
         Token::RightParen => String::from("Mark ), "),
+        Token::Lt => String::from("Mark <, "),
+        Token::Gt => String::from("Mark >, "),
+        Token::Equal => String::from("Mark =, "),
+        Token::Exclamation => String::from("Mark !, "),
         Token::Eof => String::from("EOF"),
         _ => String::from("Error"),
     };

@@ -1,6 +1,11 @@
+pub mod codegen;
+pub mod node;
 pub mod parser;
+pub mod tokenizer;
 
-use parser::{gen, parse, sprint_node};
+use codegen::gen;
+use node::sprint_node;
+use parser::parse;
 
 fn main() {
     let prog_string = std::env::args().nth(1).unwrap();
