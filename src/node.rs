@@ -1,14 +1,19 @@
+#[derive(Clone)]
 pub enum Node {
     Unary(Box<Node>, UnaryType),
     Binary(Box<(Node, Node)>, BinaryType),
     Num(i32),
     Boolean(bool),
+    LVar(usize),
+    Assign(Box<(Node, Node)>),
 }
 
+#[derive(Clone)]
 pub enum UnaryType {
     Not,
 }
 
+#[derive(Clone)]
 pub enum BinaryType {
     Add,
     Sub,
@@ -41,11 +46,20 @@ pub fn sprint_node(node: &Node) -> String {
                 BinaryType::LtEq => String::from("<="),
                 BinaryType::NotEqual => String::from("!="),
                 _ => String::from(""),
-            } + "("
-                + &sprint_node(&binary_arg.0)
-                + ","
-                + &sprint_node(&binary_arg.1)
-                + ")"
+            } + format!(
+                "({0}, {1})",
+                &sprint_node(&binary_arg.0),
+                &sprint_node(&binary_arg.1)
+            )
+            .as_str()
+        }
+        Node::LVar(offset) => format!("var {}", offset),
+        Node::Assign(assign_arg) => {
+            format!(
+                "Assign {0} <- {1}",
+                &sprint_node(&assign_arg.0),
+                &sprint_node(&assign_arg.1)
+            )
         }
     }
 }

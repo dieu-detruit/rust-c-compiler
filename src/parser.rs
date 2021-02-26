@@ -4,23 +4,71 @@ use crate::tokenizer::{sprint_token, sprint_token_iter, tokenize, Token, TokenIt
 /*
  * 生成文法
  *
- * expr = equality
+ * program = statement*
+ * statement = expr ";"
+ * expr = assign
+ * assign = equality ( "=" assign )?
  * equality = inequality ( "==" inequality | "!=" inequality )*
  * inequality = add ( "<" add | "<=" add | ">" add | ">=" add )*
  * add = mul ( "+" mul | "-" mul )*
  * mul = unary ( "*" unary | "/" unary )*
  * unary = ( "+" | "-" )? primary
- * primary = num | "(" expr ")"
+ * primary = num | ident | "(" expr ")"
  *
  */
 
 pub struct Parser<'a> {
     token_iter: TokenIter<'a>,
+    code: Vec<Node>,
 }
 
 impl Parser<'_> {
+    pub fn program(&mut self) -> Vec<Node> {
+        while self.token_iter.clone().next().is_some() {
+            let statement = self.statement();
+            self.code.push(statement);
+        }
+        self.code.clone()
+    }
+
+    pub fn statement(&mut self) -> Node {
+        eprintln!("statement() called");
+        let node = self.expr();
+
+        let mut token_iter_cp = self.token_iter.clone();
+        let token = token_iter_cp.next().unwrap_or(Token::Eof);
+        eprintln!("current token: {}", sprint_token(&token));
+
+        match token {
+            Token::Semicolon => {
+                self.token_iter.ignore(1);
+                return node;
+            }
+            _ => {
+                panic!("Missing Semicolon");
+            }
+        }
+    }
+
     pub fn expr(&mut self) -> Node {
-        self.equality()
+        eprintln!("expr() called");
+        self.assign()
+    }
+
+    pub fn assign(&mut self) -> Node {
+        eprintln!("assign() called");
+        let node = self.equality();
+        let mut token_iter_cp = self.token_iter.clone();
+        let token = token_iter_cp.next().unwrap_or(Token::Eof);
+        eprintln!("current token: {}", sprint_token(&token));
+
+        return match token {
+            Token::Equal => {
+                self.token_iter.ignore(1);
+                Node::Assign(Box::new((node, self.assign())))
+            }
+            _ => node,
+        };
     }
 
     pub fn equality(&mut self) -> Node {
@@ -39,7 +87,7 @@ impl Parser<'_> {
                         self.token_iter.ignore(2);
                         node = Node::Binary(Box::new((node, self.inequality())), BinaryType::Equal);
                     } else {
-                        panic!("Invalid Input");
+                        return node;
                     }
                 }
                 Token::Exclamation => {
@@ -49,7 +97,7 @@ impl Parser<'_> {
                         node =
                             Node::Binary(Box::new((node, self.inequality())), BinaryType::NotEqual);
                     } else {
-                        panic!("Invalid Input");
+                        return node;
                     }
                 }
                 _ => {
@@ -181,13 +229,17 @@ impl Parser<'_> {
 
         return match token {
             Token::LeftParen => {
-                eprintln!("Left Paren");
+                eprintln!("Paren");
                 let node_expr = self.expr();
                 if let Token::RightParen = self.token_iter.next().unwrap() {
                     node_expr
                 } else {
                     panic!("Invalid Input");
                 }
+            }
+            Token::Identity(name) => {
+                eprintln!("Lvar");
+                Node::LVar((name.as_bytes()[0] - b'a') as usize + 1)
             }
             Token::Num(n) => {
                 eprintln!("Num");
@@ -200,7 +252,7 @@ impl Parser<'_> {
     }
 }
 
-pub fn parse(prog: &str) -> Node {
+pub fn parse(prog: &str) -> Vec<Node> {
     let mut token_iter = tokenize(prog);
     let output = sprint_token_iter(token_iter);
     eprintln!("{}", output);
@@ -208,6 +260,8 @@ pub fn parse(prog: &str) -> Node {
 
     let mut parser = Parser {
         token_iter: token_iter,
+        code: Vec::new(),
     };
-    return parser.expr();
+
+    return parser.program();
 }

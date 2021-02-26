@@ -14,10 +14,11 @@ fn main() {
     println!(".globl main");
     println!("main:");
 
-    let parent_node = parse(prog_string.as_str());
-    eprintln!("debug: {}", &sprint_node(&parent_node));
-
-    gen(parent_node);
+    let code = parse(prog_string.as_str());
+    for statement in code.iter() {
+        eprintln!("debug: {}", &sprint_node(&statement));
+        gen(statement);
+    }
 
     println!("    pop rax");
     println!("    ret");
