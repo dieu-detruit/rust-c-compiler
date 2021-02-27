@@ -1,7 +1,6 @@
 #!/usr/bin/zsh
 
-#expr="a = -8 + 2 * (4 + 1) > 2 * 3;"
-expr="myvar = 2 * 3;"
+expr="hoge = 2 * 3; fuga = 7 * 1; return hoge + fuga;"
 echo input: $expr
 cargo run -- $expr > out.S
 cc out.S

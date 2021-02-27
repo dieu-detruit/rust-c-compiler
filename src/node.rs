@@ -10,6 +10,7 @@ pub enum Node {
     Boolean(bool),
     LVar(usize),
     Assign(Box<(Node, Node)>),
+    Return(Box<Node>),
 }
 
 #[derive(Clone)]
@@ -65,5 +66,6 @@ pub fn sprint_node(node: &Node) -> String {
                 &sprint_node(&assign_arg.1)
             )
         }
+        Node::Return(return_arg) => format!("return {}", &sprint_node(&*return_arg)),
     }
 }

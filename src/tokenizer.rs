@@ -1,4 +1,5 @@
 pub enum Token {
+    // symbols
     Plus,
     Minus,
     Asterisk,
@@ -10,8 +11,12 @@ pub enum Token {
     Equal,
     Exclamation,
     Semicolon,
+    // literal
     Num(i32),
+    // variable
     Identity(String),
+    // reserved keyword
+    Return,
     Eof,
 }
 
@@ -65,7 +70,11 @@ impl<'a> Iterator for TokenIter<'a> {
             b'a'..=b'z' | b'_' => {
                 let (ident_s, remain_s) = split_identity(self.s);
                 self.s = remain_s;
-                Some(Token::Identity(ident_s.to_string()))
+                if ident_s == "return" {
+                    Some(Token::Return)
+                } else {
+                    Some(Token::Identity(ident_s.to_string()))
+                }
             }
             _ => None,
         };

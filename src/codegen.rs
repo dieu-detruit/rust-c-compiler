@@ -29,6 +29,13 @@ pub fn gen(node: &Node) {
             println!("    mov [rax], rdi");
             println!("    push rdi");
         }
+        Node::Return(return_expr) => {
+            gen(&*return_expr);
+            println!("    pop rax");
+            println!("    mov rsp, rbp");
+            println!("    pop rbp");
+            println!("    ret");
+        }
         Node::Unary(unary_arg, _unary_type) => {
             gen(&unary_arg);
             match _unary_type {

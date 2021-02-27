@@ -7,7 +7,7 @@ use crate::tokenizer::{sprint_token, sprint_token_iter, tokenize, Token, TokenIt
  * 生成文法
  *
  * program = statement*
- * statement = expr ";"
+ * statement = expr ";" | "return" expr ";"
  * expr = assign
  * assign = equality ( "=" assign )?
  * equality = inequality ( "==" inequality | "!=" inequality )*
@@ -37,7 +37,18 @@ impl Parser<'_> {
 
     pub fn statement(&mut self) -> Node {
         eprintln!("statement() called");
-        let node = self.expr();
+
+        let mut token_iter_cp = self.token_iter.clone();
+        let token = token_iter_cp.next().unwrap_or(Token::Eof);
+        eprintln!("current token: {}", sprint_token(&token));
+
+        let node = match token {
+            Token::Return => {
+                self.token_iter.ignore(1);
+                Node::Return(Box::new(self.expr()))
+            }
+            _ => self.expr(),
+        };
 
         let mut token_iter_cp = self.token_iter.clone();
         let token = token_iter_cp.next().unwrap_or(Token::Eof);
