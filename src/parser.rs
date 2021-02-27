@@ -1,4 +1,6 @@
-use crate::node::{BinaryType, Node, UnaryType};
+use std::collections::HashMap;
+
+use crate::node::{BinaryType, LVar, Node, UnaryType};
 use crate::tokenizer::{sprint_token, sprint_token_iter, tokenize, Token, TokenIter};
 
 /*
@@ -19,6 +21,8 @@ use crate::tokenizer::{sprint_token, sprint_token_iter, tokenize, Token, TokenIt
 
 pub struct Parser<'a> {
     token_iter: TokenIter<'a>,
+    local_vars: HashMap<String, LVar>,
+    pub offset_last: usize,
     code: Vec<Node>,
 }
 
@@ -239,7 +243,19 @@ impl Parser<'_> {
             }
             Token::Identity(name) => {
                 eprintln!("Lvar");
-                Node::LVar((name.as_bytes()[0] - b'a') as usize + 1)
+                return match self.local_vars.get(&name) {
+                    None => {
+                        self.local_vars.insert(
+                            name.clone(),
+                            LVar {
+                                offset: self.offset_last,
+                            },
+                        );
+                        self.offset_last = self.offset_last + 8;
+                        Node::LVar(self.offset_last - 8)
+                    }
+                    Some(local_var) => Node::LVar(local_var.offset),
+                };
             }
             Token::Num(n) => {
                 eprintln!("Num");
@@ -252,7 +268,7 @@ impl Parser<'_> {
     }
 }
 
-pub fn parse(prog: &str) -> Vec<Node> {
+pub fn parse(prog: &str) -> (Vec<Node>, usize) {
     let mut token_iter = tokenize(prog);
     let output = sprint_token_iter(token_iter);
     eprintln!("{}", output);
@@ -260,8 +276,10 @@ pub fn parse(prog: &str) -> Vec<Node> {
 
     let mut parser = Parser {
         token_iter: token_iter,
+        local_vars: HashMap::new(),
+        offset_last: 0,
         code: Vec::new(),
     };
 
-    return parser.program();
+    return (parser.program(), parser.offset_last - 8);
 }

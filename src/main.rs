@@ -14,12 +14,19 @@ fn main() {
     println!(".globl main");
     println!("main:");
 
-    let code = parse(prog_string.as_str());
+    let (code, local_var_size) = parse(prog_string.as_str());
+
+    println!("    push rbp");
+    println!("    mov rbp, rsp");
+    println!("    sub rsp, {}", local_var_size);
+
     for statement in code.iter() {
         eprintln!("debug: {}", &sprint_node(&statement));
         gen(statement);
+        println!("    pop rax");
     }
 
-    println!("    pop rax");
+    println!("    mov rsp, rbp");
+    println!("    pop rbp");
     println!("    ret");
 }

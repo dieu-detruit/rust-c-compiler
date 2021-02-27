@@ -1,3 +1,7 @@
+pub struct LVar {
+    pub offset: usize,
+}
+
 #[derive(Clone)]
 pub enum Node {
     Unary(Box<Node>, UnaryType),
