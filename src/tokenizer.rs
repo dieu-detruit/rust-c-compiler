@@ -11,6 +11,8 @@ pub enum Token {
     Equal,
     Exclamation,
     Semicolon,
+    LeftCurl,
+    RightCurl,
     // literal
     Num(i32),
     // variable
@@ -60,6 +62,12 @@ impl Token {
             _ => false,
         }
     }
+    pub fn is_rightcurl(&self) -> bool {
+        match self {
+            Token::RightCurl => true,
+            _ => false,
+        }
+    }
 }
 
 impl<'a> Iterator for TokenIter<'a> {
@@ -86,6 +94,8 @@ impl<'a> Iterator for TokenIter<'a> {
             b'=' => self.tokenize_byte(Token::Equal),
             b'!' => self.tokenize_byte(Token::Exclamation),
             b';' => self.tokenize_byte(Token::Semicolon),
+            b'{' => self.tokenize_byte(Token::LeftCurl),
+            b'}' => self.tokenize_byte(Token::RightCurl),
             b'0'..=b'9' => {
                 let (digit_s, remain_s) = split_digit(self.s);
                 self.s = remain_s;
@@ -120,6 +130,7 @@ impl<'a> TokenIter<'a> {
     }
 
     // skipで型が変わるのが面倒なので実装
+    // TODO: advance_by()がstableになったら置き換える
     pub fn ignore(&mut self, n: usize) {
         for _i in 0..n {
             self.s = self.s.trim_start();
@@ -128,7 +139,8 @@ impl<'a> TokenIter<'a> {
             }
 
             match self.s.as_bytes()[0] {
-                b'+' | b'-' | b'*' | b'/' | b'(' | b')' | b'<' | b'>' | b'=' | b'!' | b';' => {
+                b'+' | b'-' | b'*' | b'/' | b'(' | b')' | b'<' | b'>' | b'=' | b'!' | b';'
+                | b'{' | b'}' => {
                     self.s = self.s.split_at(1).1;
                 }
                 b'0'..=b'9' => {
@@ -169,6 +181,8 @@ pub fn sprint_token(token: &Token) -> String {
         Token::Equal => String::from("Mark =, "),
         Token::Exclamation => String::from("Mark !, "),
         Token::Semicolon => String::from("Mark ;, "),
+        Token::LeftCurl => String::from("Mark {, "),
+        Token::RightCurl => String::from("Mark }, "),
         Token::Identity(name) => format!("Var [{}], ", name.clone()),
         Token::Return => String::from("Return, "),
         Token::If => String::from("If, "),

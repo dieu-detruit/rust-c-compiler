@@ -8,6 +8,7 @@ use crate::tokenizer::{sprint_token, sprint_token_iter, tokenize, Token, TokenIt
  *
  * program = statement*
  * statement    = expression ";"
+ *              | "{" statement* "}"
  *              | "if" "(" expression ")" statement ( "else" statement )?
  *              | "while" "(" expression ")" statement
  *              | "for" "(" expression? ";" expression? ";" expression? ")" statement
@@ -27,16 +28,15 @@ pub struct Parser<'a> {
     token_iter: TokenIter<'a>,
     local_vars: HashMap<String, LVar>,
     pub offset_last: usize,
-    code: Vec<Node>,
 }
 
 impl Parser<'_> {
-    pub fn program(&mut self) -> Vec<Node> {
+    pub fn program(&mut self) -> Node {
+        let mut code: Vec<Node> = Vec::new();
         while self.token_iter.clone().next().is_some() {
-            let statement = self.statement();
-            self.code.push(statement);
+            code.push(self.statement());
         }
-        self.code.clone()
+        Node::Block(code)
     }
 
     pub fn statement(&mut self) -> Node {
@@ -47,6 +47,18 @@ impl Parser<'_> {
         eprintln!("current token: {}", sprint_token(&token));
 
         return match token {
+            Token::LeftCurl => {
+                self.token_iter.ignore(1);
+                let mut statements: Vec<Node> = Vec::new();
+                loop {
+                    if let Token::RightCurl = self.token_iter.clone().next().unwrap_or(Token::Eof) {
+                        self.token_iter.ignore(1);
+                        return Node::Block(statements);
+                    } else {
+                        statements.push(self.statement());
+                    }
+                }
+            }
             Token::Return => {
                 self.token_iter.ignore(1);
                 let return_expression = self.expression();
@@ -184,7 +196,6 @@ impl Parser<'_> {
             match token {
                 Token::Equal => {
                     if let Token::Equal = token_iter_cp.next().unwrap_or(Token::Eof) {
-                        eprintln!("Equal");
                         self.token_iter.ignore(2);
                         node = Node::Binary(Box::new((node, self.inequality())), BinaryType::Equal);
                     } else {
@@ -193,7 +204,6 @@ impl Parser<'_> {
                 }
                 Token::Exclamation => {
                     if let Token::Equal = token_iter_cp.next().unwrap_or(Token::Eof) {
-                        eprintln!("NotEqual");
                         self.token_iter.ignore(2);
                         node =
                             Node::Binary(Box::new((node, self.inequality())), BinaryType::NotEqual);
@@ -220,24 +230,20 @@ impl Parser<'_> {
             match token {
                 Token::Lt => match token_iter_cp.next().unwrap_or(Token::Eof) {
                     Token::Equal => {
-                        eprintln!("LtEq");
                         self.token_iter.ignore(2);
                         node = Node::Binary(Box::new((node, self.add())), BinaryType::LtEq);
                     }
                     _ => {
-                        eprintln!("Lt");
                         self.token_iter.ignore(1);
                         node = Node::Binary(Box::new((node, self.add())), BinaryType::Lt);
                     }
                 },
                 Token::Gt => match token_iter_cp.next().unwrap_or(Token::Eof) {
                     Token::Equal => {
-                        eprintln!("GtEq");
                         self.token_iter.ignore(2);
                         node = Node::Binary(Box::new((self.add(), node)), BinaryType::LtEq);
                     }
                     _ => {
-                        eprintln!("Gt");
                         self.token_iter.ignore(1);
                         node = Node::Binary(Box::new((self.add(), node)), BinaryType::Lt);
                     }
@@ -260,12 +266,10 @@ impl Parser<'_> {
 
             match token {
                 Token::Plus => {
-                    eprintln!("Plus");
                     self.token_iter.ignore(1);
                     node = Node::Binary(Box::new((node, self.mul())), BinaryType::Add);
                 }
                 Token::Minus => {
-                    eprintln!("Minus");
                     self.token_iter.ignore(1);
                     node = Node::Binary(Box::new((node, self.mul())), BinaryType::Sub);
                 }
@@ -286,12 +290,10 @@ impl Parser<'_> {
 
             match token {
                 Token::Asterisk => {
-                    eprintln!("Asterisk");
                     self.token_iter.ignore(1);
                     node = Node::Binary(Box::new((node, self.unary())), BinaryType::Mul)
                 }
                 Token::Slash => {
-                    eprintln!("Slash");
                     self.token_iter.ignore(1);
                     node = Node::Binary(Box::new((node, self.unary())), BinaryType::Div)
                 }
@@ -310,12 +312,10 @@ impl Parser<'_> {
 
         return match token {
             Token::Plus => {
-                eprintln!("UnaryPlus");
                 self.token_iter.ignore(1);
                 self.primary()
             }
             Token::Minus => {
-                eprintln!("UnaryMinus");
                 self.token_iter.ignore(1);
                 Node::Binary(Box::new((Node::Num(0), self.primary())), BinaryType::Sub)
             }
@@ -330,7 +330,6 @@ impl Parser<'_> {
 
         return match token {
             Token::LeftParen => {
-                eprintln!("Paren");
                 let node_expression = self.expression();
                 if let Token::RightParen = self.token_iter.next().unwrap() {
                     node_expression
@@ -339,7 +338,6 @@ impl Parser<'_> {
                 }
             }
             Token::Identity(name) => {
-                eprintln!("Lvar {}", name);
                 return match self.local_vars.get(&name) {
                     None => {
                         self.local_vars.insert(
@@ -354,10 +352,7 @@ impl Parser<'_> {
                     Some(local_var) => Node::LVar(local_var.offset),
                 };
             }
-            Token::Num(n) => {
-                eprintln!("Num");
-                Node::Num(n)
-            }
+            Token::Num(n) => Node::Num(n),
             _ => {
                 panic!("Invalid Input");
             }
@@ -365,7 +360,7 @@ impl Parser<'_> {
     }
 }
 
-pub fn parse(prog: &str) -> (Vec<Node>, usize) {
+pub fn parse(prog: &str) -> (Node, usize) {
     let mut token_iter = tokenize(prog);
     let output = sprint_token_iter(token_iter);
     eprintln!("{}", output);
@@ -375,7 +370,6 @@ pub fn parse(prog: &str) -> (Vec<Node>, usize) {
         token_iter: token_iter,
         local_vars: HashMap::new(),
         offset_last: 0,
-        code: Vec::new(),
     };
 
     return (parser.program(), parser.offset_last - 8);

@@ -15,6 +15,7 @@ pub enum Node {
     IfElse(Box<(Node, Node, Node)>),
     For(Box<(Node, Node, Node, Node)>),
     While(Box<(Node, Node)>),
+    Block(Vec<Node>),
     Empty,
 }
 
@@ -33,6 +34,15 @@ pub enum BinaryType {
     NotEqual,
     Lt,
     LtEq,
+}
+
+impl Node {
+    pub fn is_block(&self) -> bool {
+        match self {
+            Node::Block(_) => true,
+            _ => false,
+        }
+    }
 }
 
 pub fn sprint_node(node: &Node) -> String {
@@ -84,7 +94,7 @@ pub fn sprint_node(node: &Node) -> String {
             &sprint_node(&if_arg.2)
         ),
         Node::For(for_arg) => format!(
-            "For ({0}; {1}; {2}) {{ {3} }}",
+            "For ({0}; {1}; {2}) {3}",
             &sprint_node(&for_arg.0),
             &sprint_node(&for_arg.1),
             &sprint_node(&for_arg.2),
@@ -95,6 +105,14 @@ pub fn sprint_node(node: &Node) -> String {
             &sprint_node(&while_arg.0),
             &sprint_node(&while_arg.1)
         ),
+        Node::Block(statements) => {
+            statements
+                .iter()
+                .fold(String::from("Block {\n"), |out, stmt| {
+                    out + &sprint_node(&stmt) + "\n"
+                })
+                + "}"
+        }
         Node::Empty => String::from("Do Nothing"),
     }
 }

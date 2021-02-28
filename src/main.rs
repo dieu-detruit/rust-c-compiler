@@ -20,14 +20,7 @@ fn main() {
     println!("    mov rbp, rsp");
     println!("    sub rsp, {}", local_var_size);
 
-    let mut codegen = CodeGenerator { label_count: 0 };
-    for statement in code.iter() {
-        eprintln!("debug: {}", &sprint_node(&statement));
-        codegen.gen(statement);
-        println!("    pop rax");
-    }
-
-    println!("    mov rsp, rbp");
-    println!("    pop rbp");
-    println!("    ret");
+    let mut generator = CodeGenerator { label_count: 0 };
+    eprintln!("debug: {}", &sprint_node(&code));
+    generator.gen(&code);
 }
