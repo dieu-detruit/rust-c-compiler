@@ -3,7 +3,7 @@ pub mod node;
 pub mod parser;
 pub mod tokenizer;
 
-use codegen::gen;
+use codegen::CodeGenerator;
 use node::sprint_node;
 use parser::parse;
 
@@ -20,9 +20,10 @@ fn main() {
     println!("    mov rbp, rsp");
     println!("    sub rsp, {}", local_var_size);
 
+    let mut codegen = CodeGenerator { label_count: 0 };
     for statement in code.iter() {
         eprintln!("debug: {}", &sprint_node(&statement));
-        gen(statement);
+        codegen.gen(statement);
         println!("    pop rax");
     }
 

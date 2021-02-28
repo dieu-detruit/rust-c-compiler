@@ -17,6 +17,11 @@ pub enum Token {
     Identity(String),
     // reserved keyword
     Return,
+    If,
+    Else,
+    For,
+    While,
+    // EOF
     Eof,
 }
 
@@ -34,6 +39,25 @@ impl Token {
         match self {
             Token::Num(n) => *n,
             _ => panic!("Invalid Code"),
+        }
+    }
+
+    pub fn is_leftparen(&self) -> bool {
+        match self {
+            Token::LeftParen => true,
+            _ => false,
+        }
+    }
+    pub fn is_rightparen(&self) -> bool {
+        match self {
+            Token::RightParen => true,
+            _ => false,
+        }
+    }
+    pub fn is_semicolon(&self) -> bool {
+        match self {
+            Token::Semicolon => true,
+            _ => false,
         }
     }
 }
@@ -72,6 +96,14 @@ impl<'a> Iterator for TokenIter<'a> {
                 self.s = remain_s;
                 if ident_s == "return" {
                     Some(Token::Return)
+                } else if ident_s == "if" {
+                    Some(Token::If)
+                } else if ident_s == "else" {
+                    Some(Token::Else)
+                } else if ident_s == "for" {
+                    Some(Token::For)
+                } else if ident_s == "while" {
+                    Some(Token::While)
                 } else {
                     Some(Token::Identity(ident_s.to_string()))
                 }
@@ -137,9 +169,13 @@ pub fn sprint_token(token: &Token) -> String {
         Token::Equal => String::from("Mark =, "),
         Token::Exclamation => String::from("Mark !, "),
         Token::Semicolon => String::from("Mark ;, "),
-        Token::Eof => String::from("EOF"),
         Token::Identity(name) => format!("Var [{}], ", name.clone()),
-        _ => String::from("Error"),
+        Token::Return => String::from("Return, "),
+        Token::If => String::from("If, "),
+        Token::Else => String::from("Else, "),
+        Token::For => String::from("For, "),
+        Token::While => String::from("While, "),
+        Token::Eof => String::from("EOF"),
     };
 }
 
@@ -153,13 +189,13 @@ pub fn sprint_token_iter<'a>(token_iter: TokenIter<'a>) -> String {
 
 #[cfg(test)]
 mod test {
-    use crate::parser::tokenizer::{sprint_token_iter, tokenize, Token};
+    use crate::tokenizer::{sprint_token_iter, tokenize, Token};
     #[test]
     fn tokenize_test() {
         let prog = "1 + 2 + 3 + 4";
         let output = sprint_token_iter(tokenize(prog));
 
-        //panic!("{}", output);
+        panic!("{}", output);
     }
     #[test]
     fn clone_tokeniter_test() {
@@ -172,5 +208,13 @@ mod test {
         let cloned = sprint_token_iter(token_iter_cp);
 
         panic!("\noriginal {0},\n cloned: {1}", original, cloned);
+    }
+
+    #[test]
+    fn is_leftparen_test() {
+        let token = Token::LeftParen;
+        if !token.is_leftparen() {
+            panic!("It's not a left paren");
+        }
     }
 }

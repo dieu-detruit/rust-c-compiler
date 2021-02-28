@@ -1,21 +1,25 @@
 use std::collections::HashMap;
 
-use crate::node::{BinaryType, LVar, Node, UnaryType};
+use crate::node::{BinaryType, LVar, Node};
 use crate::tokenizer::{sprint_token, sprint_token_iter, tokenize, Token, TokenIter};
 
 /*
  * 生成文法
  *
  * program = statement*
- * statement = expr ";" | "return" expr ";"
- * expr = assign
+ * statement    = expression ";"
+ *              | "if" "(" expression ")" statement ( "else" statement )?
+ *              | "while" "(" expression ")" statement
+ *              | "for" "(" expression? ";" expression? ";" expression? ")" statement
+ *              | "return" expression ";"
+ * expression = assign
  * assign = equality ( "=" assign )?
  * equality = inequality ( "==" inequality | "!=" inequality )*
  * inequality = add ( "<" add | "<=" add | ">" add | ">=" add )*
  * add = mul ( "+" mul | "-" mul )*
  * mul = unary ( "*" unary | "/" unary )*
  * unary = ( "+" | "-" )? primary
- * primary = num | ident | "(" expr ")"
+ * primary = num | ident | "(" expression ")"
  *
  */
 
@@ -42,31 +46,113 @@ impl Parser<'_> {
         let token = token_iter_cp.next().unwrap_or(Token::Eof);
         eprintln!("current token: {}", sprint_token(&token));
 
-        let node = match token {
+        return match token {
             Token::Return => {
                 self.token_iter.ignore(1);
-                Node::Return(Box::new(self.expr()))
+                let return_expression = self.expression();
+                if let Token::Semicolon = self.token_iter.next().unwrap_or(Token::Eof) {
+                    Node::Return(Box::new(return_expression))
+                } else {
+                    panic!("Missing Semicolon")
+                }
             }
-            _ => self.expr(),
-        };
-
-        let mut token_iter_cp = self.token_iter.clone();
-        let token = token_iter_cp.next().unwrap_or(Token::Eof);
-        eprintln!("current token: {}", sprint_token(&token));
-
-        match token {
-            Token::Semicolon => {
+            Token::If => {
                 self.token_iter.ignore(1);
-                return node;
+                // expect "("
+                if !self.token_iter.next().unwrap_or(Token::Eof).is_leftparen() {
+                    panic!("Missing '(' in \"if\" statement");
+                }
+                // if condition
+                let cond = self.expression();
+                // expect ")"
+                if !self.token_iter.next().unwrap_or(Token::Eof).is_rightparen() {
+                    panic!("Missing ')' in \"if\" statement");
+                }
+                // statement executed if true
+                let statement_true = self.statement();
+
+                if let Token::Else = self.token_iter.clone().next().unwrap_or(Token::Eof) {
+                    self.token_iter.ignore(1);
+                    Node::IfElse(Box::new((cond, statement_true, self.statement())))
+                } else {
+                    Node::If(Box::new((cond, statement_true)))
+                }
+            }
+            Token::For => {
+                self.token_iter.ignore(1);
+                // expect "("
+                if !self.token_iter.next().unwrap_or(Token::Eof).is_leftparen() {
+                    panic!("Missing '(' in \"for\" statement");
+                }
+                // initialize expression
+                let initialize_expression = if let Token::Semicolon =
+                    self.token_iter.clone().next().unwrap_or(Token::Eof)
+                {
+                    Node::Empty
+                } else {
+                    self.expression()
+                };
+                // expect ";"
+                if !self.token_iter.next().unwrap_or(Token::Eof).is_semicolon() {
+                    panic!("Missing first ';' in \"for\" statement");
+                }
+                // loop condition
+                let loop_condition =
+                    if let Token::Semicolon = token_iter_cp.next().unwrap_or(Token::Eof) {
+                        Node::Boolean(true)
+                    } else {
+                        self.expression()
+                    };
+                // expect ";"
+                if !self.token_iter.next().unwrap_or(Token::Eof).is_semicolon() {
+                    panic!("Missing second ';' in \"for\" statement");
+                }
+                // update expression
+                let update_expression =
+                    if let Token::RightParen = token_iter_cp.next().unwrap_or(Token::Eof) {
+                        self.token_iter.ignore(1);
+                        Node::Empty
+                    } else {
+                        self.expression()
+                    };
+                // expect ")"
+                if !self.token_iter.next().unwrap_or(Token::Eof).is_rightparen() {
+                    panic!("Missing ')' in \"for\" statement");
+                }
+                Node::For(Box::new((
+                    initialize_expression,
+                    loop_condition,
+                    update_expression,
+                    self.statement(),
+                )))
+            }
+            Token::While => {
+                self.token_iter.ignore(1);
+                // expect "("
+                if !self.token_iter.next().unwrap_or(Token::Eof).is_leftparen() {
+                    panic!("Missing '(' in \"while\" statement");
+                }
+                // loop condition
+                let cond = self.expression();
+                // expect ")"
+                if !self.token_iter.next().unwrap_or(Token::Eof).is_rightparen() {
+                    panic!("Missing ')' in \"while\" statement");
+                }
+                Node::While(Box::new((cond, self.statement())))
             }
             _ => {
-                panic!("Missing Semicolon");
+                let node = self.expression();
+                if let Token::Semicolon = self.token_iter.next().unwrap_or(Token::Eof) {
+                    node
+                } else {
+                    panic!("Missing Semicolon");
+                }
             }
-        }
+        };
     }
 
-    pub fn expr(&mut self) -> Node {
-        eprintln!("expr() called");
+    pub fn expression(&mut self) -> Node {
+        eprintln!("expression() called");
         self.assign()
     }
 
@@ -245,15 +331,15 @@ impl Parser<'_> {
         return match token {
             Token::LeftParen => {
                 eprintln!("Paren");
-                let node_expr = self.expr();
+                let node_expression = self.expression();
                 if let Token::RightParen = self.token_iter.next().unwrap() {
-                    node_expr
+                    node_expression
                 } else {
                     panic!("Invalid Input");
                 }
             }
             Token::Identity(name) => {
-                eprintln!("Lvar");
+                eprintln!("Lvar {}", name);
                 return match self.local_vars.get(&name) {
                     None => {
                         self.local_vars.insert(

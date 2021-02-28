@@ -11,6 +11,11 @@ pub enum Node {
     LVar(usize),
     Assign(Box<(Node, Node)>),
     Return(Box<Node>),
+    If(Box<(Node, Node)>),
+    IfElse(Box<(Node, Node, Node)>),
+    For(Box<(Node, Node, Node, Node)>),
+    While(Box<(Node, Node)>),
+    Empty,
 }
 
 #[derive(Clone)]
@@ -58,7 +63,7 @@ pub fn sprint_node(node: &Node) -> String {
             )
             .as_str()
         }
-        Node::LVar(offset) => format!("var {}", offset),
+        Node::LVar(offset) => format!("[var {}]", offset),
         Node::Assign(assign_arg) => {
             format!(
                 "Assign {0} <- {1}",
@@ -67,5 +72,29 @@ pub fn sprint_node(node: &Node) -> String {
             )
         }
         Node::Return(return_arg) => format!("return {}", &sprint_node(&*return_arg)),
+        Node::If(if_arg) => format!(
+            "If ({0}) Then {1}",
+            &sprint_node(&if_arg.0),
+            &sprint_node(&if_arg.1)
+        ),
+        Node::IfElse(if_arg) => format!(
+            "If ({0}) Then {1} Else {2}",
+            &sprint_node(&if_arg.0),
+            &sprint_node(&if_arg.1),
+            &sprint_node(&if_arg.2)
+        ),
+        Node::For(for_arg) => format!(
+            "For ({0}; {1}; {2}) {{ {3} }}",
+            &sprint_node(&for_arg.0),
+            &sprint_node(&for_arg.1),
+            &sprint_node(&for_arg.2),
+            &sprint_node(&for_arg.3)
+        ),
+        Node::While(while_arg) => format!(
+            "while ({0}) {1}",
+            &sprint_node(&while_arg.0),
+            &sprint_node(&while_arg.1)
+        ),
+        Node::Empty => String::from("Do Nothing"),
     }
 }

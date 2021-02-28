@@ -1,8 +1,8 @@
 #!/usr/bin/zsh
 
-expr="hoge = 2 * 3; fuga = 7 * 1; return hoge + fuga;"
-echo input: $expr
-cargo run -- $expr > out.S
+echo input: input.c
+cat input.c
+cargo run -- "$(cat input.c)" > out.S
 cc out.S
 ./a.out
 
