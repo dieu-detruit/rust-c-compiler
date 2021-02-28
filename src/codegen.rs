@@ -123,6 +123,9 @@ impl CodeGenerator {
                 println!("    ret");
             }
             /* 式(expression) */
+            Node::FunctionCall(name) => {
+                println!("    call {}", name)
+            }
             Node::Unary(unary_arg, _unary_type) => {
                 self.gen(&unary_arg);
                 match _unary_type {

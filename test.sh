@@ -1,9 +1,10 @@
 #!/usr/bin/zsh
 
-echo input: input.c
-cat input.c
-cargo run -- "$(cat input.c)" > out.S
-cc out.S
+echo input: ./input/main.c
+cat ./input/main.c
+cc -c -o ./input/print.o ./input/print.c
+cargo run -- "$(cat ./input/main.c)" > ./input/out.S
+cc -o a.out ./input/out.S ./input/print.o
 ./a.out
 
 echo output: $?

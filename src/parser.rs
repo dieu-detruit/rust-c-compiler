@@ -20,7 +20,9 @@ use crate::tokenizer::{sprint_token, sprint_token_iter, tokenize, Token, TokenIt
  * add = mul ( "+" mul | "-" mul )*
  * mul = unary ( "*" unary | "/" unary )*
  * unary = ( "+" | "-" )? primary
- * primary = num | ident | "(" expression ")"
+ * primary  = num
+ *          | ident ( "(" ")" )?
+ *          | "(" expression ")"
  *
  */
 
@@ -338,19 +340,28 @@ impl Parser<'_> {
                 }
             }
             Token::Identity(name) => {
-                return match self.local_vars.get(&name) {
-                    None => {
-                        self.local_vars.insert(
-                            name.clone(),
-                            LVar {
-                                offset: self.offset_last,
-                            },
-                        );
-                        self.offset_last = self.offset_last + 8;
-                        Node::LVar(self.offset_last - 8)
+                return if let Token::LeftParen = self.token_iter.clone().next().unwrap() {
+                    self.token_iter.ignore(1);
+                    if let Token::RightParen = self.token_iter.next().unwrap() {
+                        Node::FunctionCall(name)
+                    } else {
+                        panic!("Invalid Input");
                     }
-                    Some(local_var) => Node::LVar(local_var.offset),
-                };
+                } else {
+                    match self.local_vars.get(&name) {
+                        None => {
+                            self.local_vars.insert(
+                                name.clone(),
+                                LVar {
+                                    offset: self.offset_last,
+                                },
+                            );
+                            self.offset_last = self.offset_last + 8;
+                            Node::LVar(self.offset_last - 8)
+                        }
+                        Some(local_var) => Node::LVar(local_var.offset),
+                    }
+                }
             }
             Token::Num(n) => Node::Num(n),
             _ => {

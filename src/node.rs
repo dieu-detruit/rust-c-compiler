@@ -16,6 +16,7 @@ pub enum Node {
     For(Box<(Node, Node, Node, Node)>),
     While(Box<(Node, Node)>),
     Block(Vec<Node>),
+    FunctionCall(String),
     Empty,
 }
 
@@ -105,6 +106,7 @@ pub fn sprint_node(node: &Node) -> String {
             &sprint_node(&while_arg.0),
             &sprint_node(&while_arg.1)
         ),
+        Node::FunctionCall(name) => format!("Call {}()", name),
         Node::Block(statements) => {
             statements
                 .iter()

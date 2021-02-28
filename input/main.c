@@ -10,4 +10,5 @@ if (test_for) {
         result = 3 * result;
     }
 }
+print();
 return result;
