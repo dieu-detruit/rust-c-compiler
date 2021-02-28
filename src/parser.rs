@@ -21,18 +21,18 @@ use crate::tokenizer::{sprint_token, sprint_token_iter, tokenize, Token, TokenIt
  * mul = unary ( "*" unary | "/" unary )*
  * unary = ( "+" | "-" )? primary
  * primary  = num
- *          | ident ( "(" ")" )?
+ *          | ident ( "(" ident? ( ident "," )* ")" )?
  *          | "(" expression ")"
  *
  */
 
-pub struct Parser<'a> {
-    token_iter: TokenIter<'a>,
+pub struct Parser {
+    token_iter: TokenIter,
     local_vars: HashMap<String, LVar>,
     pub offset_last: usize,
 }
 
-impl Parser<'_> {
+impl Parser {
     pub fn program(&mut self) -> Node {
         let mut code: Vec<Node> = Vec::new();
         while self.token_iter.clone().next().is_some() {
@@ -197,6 +197,7 @@ impl Parser<'_> {
 
             match token {
                 Token::Equal => {
+                    // ==
                     if let Token::Equal = token_iter_cp.next().unwrap_or(Token::Eof) {
                         self.token_iter.ignore(2);
                         node = Node::Binary(Box::new((node, self.inequality())), BinaryType::Equal);
@@ -205,6 +206,7 @@ impl Parser<'_> {
                     }
                 }
                 Token::Exclamation => {
+                    // !=
                     if let Token::Equal = token_iter_cp.next().unwrap_or(Token::Eof) {
                         self.token_iter.ignore(2);
                         node =
@@ -232,20 +234,24 @@ impl Parser<'_> {
             match token {
                 Token::Lt => match token_iter_cp.next().unwrap_or(Token::Eof) {
                     Token::Equal => {
+                        // <=
                         self.token_iter.ignore(2);
                         node = Node::Binary(Box::new((node, self.add())), BinaryType::LtEq);
                     }
                     _ => {
+                        // <
                         self.token_iter.ignore(1);
                         node = Node::Binary(Box::new((node, self.add())), BinaryType::Lt);
                     }
                 },
                 Token::Gt => match token_iter_cp.next().unwrap_or(Token::Eof) {
                     Token::Equal => {
+                        // >=
                         self.token_iter.ignore(2);
                         node = Node::Binary(Box::new((self.add(), node)), BinaryType::LtEq);
                     }
                     _ => {
+                        // >
                         self.token_iter.ignore(1);
                         node = Node::Binary(Box::new((self.add(), node)), BinaryType::Lt);
                     }
@@ -332,6 +338,7 @@ impl Parser<'_> {
 
         return match token {
             Token::LeftParen => {
+                // ( expression )
                 let node_expression = self.expression();
                 if let Token::RightParen = self.token_iter.next().unwrap() {
                     node_expression
@@ -341,13 +348,25 @@ impl Parser<'_> {
             }
             Token::Identity(name) => {
                 return if let Token::LeftParen = self.token_iter.clone().next().unwrap() {
+                    // Function Call
                     self.token_iter.ignore(1);
+                    //let mut arg_list: Vec<Node> = Vec::new();
+                    //loop {
+                    //match self.token_iter.clone().next().unwrap() {
+                    //Token::Comma => {}
+                    //_ => {
+                    //arg_list.push(self.expression());
+                    ////match self.token_iter.clone().next().unwrap() {}
+                    //}
+                    //}
+                    //}
                     if let Token::RightParen = self.token_iter.next().unwrap() {
                         Node::FunctionCall(name)
                     } else {
                         panic!("Invalid Input");
                     }
                 } else {
+                    // Variable
                     match self.local_vars.get(&name) {
                         None => {
                             self.local_vars.insert(
@@ -361,7 +380,7 @@ impl Parser<'_> {
                         }
                         Some(local_var) => Node::LVar(local_var.offset),
                     }
-                }
+                };
             }
             Token::Num(n) => Node::Num(n),
             _ => {
@@ -371,8 +390,8 @@ impl Parser<'_> {
     }
 }
 
-pub fn parse(prog: &str) -> (Node, usize) {
-    let mut token_iter = tokenize(prog);
+pub fn parse(prog: String) -> (Node, usize) {
+    let mut token_iter = tokenize(prog.clone());
     let output = sprint_token_iter(token_iter);
     eprintln!("{}", output);
     token_iter = tokenize(prog);

@@ -14,7 +14,7 @@ fn main() {
     println!(".globl main");
     println!("main:");
 
-    let (code, local_var_size) = parse(prog_string.as_str());
+    let (code, local_var_size) = parse(prog_string);
 
     println!("    push rbp");
     println!("    mov rbp, rsp");

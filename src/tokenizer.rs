@@ -13,6 +13,7 @@ pub enum Token {
     Semicolon,
     LeftCurl,
     RightCurl,
+    Comma,
     // literal
     Num(i32),
     // variable
@@ -27,13 +28,13 @@ pub enum Token {
     Eof,
 }
 
-#[derive(Copy, Clone)]
-pub struct TokenIter<'a> {
-    s: &'a str,
+#[derive(Clone)]
+pub struct TokenIter {
+    s: String,
 }
 
-pub fn tokenize<'a>(s: &'a str) -> TokenIter<'a> {
-    TokenIter { s }
+pub fn tokenize(s: String) -> TokenIter {
+    TokenIter { s: s.clone() }
 }
 
 impl Token {
@@ -70,106 +71,112 @@ impl Token {
     }
 }
 
-impl<'a> Iterator for TokenIter<'a> {
+impl Iterator for TokenIter {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // 空白文字を飛ばす
-        self.s = self.s.trim_start();
-        // 終わりならNone
-        if self.s.is_empty() {
-            return None;
-        }
-
-        let first_byte = self.s.as_bytes()[0];
-        return match first_byte {
-            b'+' => self.tokenize_byte(Token::Plus),
-            b'-' => self.tokenize_byte(Token::Minus),
-            b'*' => self.tokenize_byte(Token::Asterisk),
-            b'/' => self.tokenize_byte(Token::Slash),
-            b'(' => self.tokenize_byte(Token::LeftParen),
-            b')' => self.tokenize_byte(Token::RightParen),
-            b'<' => self.tokenize_byte(Token::Lt),
-            b'>' => self.tokenize_byte(Token::Gt),
-            b'=' => self.tokenize_byte(Token::Equal),
-            b'!' => self.tokenize_byte(Token::Exclamation),
-            b';' => self.tokenize_byte(Token::Semicolon),
-            b'{' => self.tokenize_byte(Token::LeftCurl),
-            b'}' => self.tokenize_byte(Token::RightCurl),
-            b'0'..=b'9' => {
-                let (digit_s, remain_s) = split_digit(self.s);
-                self.s = remain_s;
-                Some(Token::Num(i32::from_str_radix(digit_s, 10).unwrap()))
-            }
-            b'a'..=b'z' | b'_' => {
-                let (ident_s, remain_s) = split_identity(self.s);
-                self.s = remain_s;
-                if ident_s == "return" {
-                    Some(Token::Return)
-                } else if ident_s == "if" {
-                    Some(Token::If)
-                } else if ident_s == "else" {
-                    Some(Token::Else)
-                } else if ident_s == "for" {
-                    Some(Token::For)
-                } else if ident_s == "while" {
-                    Some(Token::While)
-                } else {
-                    Some(Token::Identity(ident_s.to_string()))
-                }
-            }
-            _ => None,
-        };
+        let (token, remain_s) = self.tokenize_str(&self.s);
+        self.s = remain_s;
+        return token;
     }
 }
 
-impl<'a> TokenIter<'a> {
-    pub fn tokenize_byte(&mut self, token: Token) -> Option<Token> {
-        self.s = self.s.split_at(1).1;
-        Some(token)
+impl TokenIter {
+    fn tokenize_str(&self, input: &String) -> (Option<Token>, String) {
+        let mut s = input.clone();
+
+        // 空白文字を飛ばす
+        s = s.trim_start().to_string();
+        // 終わりならNone
+        if s.is_empty() {
+            return (None, s);
+        }
+
+        let first_byte = s.as_bytes()[0];
+        return match first_byte {
+            b'+' => self.tokenize_byte(s, Token::Plus),
+            b'-' => self.tokenize_byte(s, Token::Minus),
+            b'*' => self.tokenize_byte(s, Token::Asterisk),
+            b'/' => self.tokenize_byte(s, Token::Slash),
+            b'(' => self.tokenize_byte(s, Token::LeftParen),
+            b')' => self.tokenize_byte(s, Token::RightParen),
+            b'<' => self.tokenize_byte(s, Token::Lt),
+            b'>' => self.tokenize_byte(s, Token::Gt),
+            b'=' => self.tokenize_byte(s, Token::Equal),
+            b'!' => self.tokenize_byte(s, Token::Exclamation),
+            b';' => self.tokenize_byte(s, Token::Semicolon),
+            b'{' => self.tokenize_byte(s, Token::LeftCurl),
+            b'}' => self.tokenize_byte(s, Token::RightCurl),
+            b',' => self.tokenize_byte(s, Token::Comma),
+            b'0'..=b'9' => {
+                let (digit_s, remain_s) = split_digit(s);
+                s = remain_s;
+                (
+                    Some(Token::Num(i32::from_str_radix(&digit_s, 10).unwrap())),
+                    s,
+                )
+            }
+            b'a'..=b'z' | b'_' => {
+                let (ident_s, remain_s) = split_identity(s);
+                (
+                    if ident_s == "return" {
+                        Some(Token::Return)
+                    } else if ident_s == "if" {
+                        Some(Token::If)
+                    } else if ident_s == "else" {
+                        Some(Token::Else)
+                    } else if ident_s == "for" {
+                        Some(Token::For)
+                    } else if ident_s == "while" {
+                        Some(Token::While)
+                    } else {
+                        Some(Token::Identity(ident_s))
+                    },
+                    remain_s,
+                )
+            }
+            _ => (None, s),
+        };
     }
+
+    pub fn tokenize_byte(&self, input: String, token: Token) -> (Option<Token>, String) {
+        (Some(token), input.split_at(1).1.to_string())
+    }
+
+    // イテレータを進めずに次を覗き見る
+    // Peekableは拘束しないといけないので面倒
+    pub fn peep() {}
 
     // skipで型が変わるのが面倒なので実装
     // TODO: advance_by()がstableになったら置き換える
     pub fn ignore(&mut self, n: usize) {
         for _i in 0..n {
-            self.s = self.s.trim_start();
-            if self.s.is_empty() {
+            let (tokenize_result, remain_s) = self.tokenize_str(&self.s);
+            if let None = tokenize_result {
                 return;
             }
-
-            match self.s.as_bytes()[0] {
-                b'+' | b'-' | b'*' | b'/' | b'(' | b')' | b'<' | b'>' | b'=' | b'!' | b';'
-                | b'{' | b'}' => {
-                    self.s = self.s.split_at(1).1;
-                }
-                b'0'..=b'9' => {
-                    self.s = split_digit(self.s).1;
-                }
-                b'a'..=b'z' | b'_' => {
-                    self.s = split_identity(self.s).1;
-                }
-                _ => {}
-            };
+            self.s = remain_s;
         }
     }
 }
 
-pub fn split_digit(s: &str) -> (&str, &str) {
+pub fn split_digit(s: String) -> (String, String) {
     let first_non_num_idx = s.find(|c| !char::is_numeric(c)).unwrap_or(s.len());
-    s.split_at(first_non_num_idx)
+    let (former, latter) = s.split_at(first_non_num_idx);
+    (former.to_string(), latter.to_string())
 }
 
-pub fn split_identity(s: &str) -> (&str, &str) {
+pub fn split_identity(s: String) -> (String, String) {
     let first_non_ident_idx = s
         .find(|c: char| !char::is_alphabetic(c) && !char::is_numeric(c) && c != '_')
         .unwrap_or(s.len());
-    s.split_at(first_non_ident_idx)
+    let (former, latter) = s.split_at(first_non_ident_idx);
+    (former.to_string(), latter.to_string())
 }
 
 pub fn sprint_token(token: &Token) -> String {
     return match token {
-        Token::Num(n) => String::from(format!("Num: {}, ", n)),
+        Token::Num(n) => format!("Num: {}, ", n),
         Token::Plus => String::from("Mark +, "),
         Token::Minus => String::from("Mark -, "),
         Token::Asterisk => String::from("Mark *, "),
@@ -183,6 +190,7 @@ pub fn sprint_token(token: &Token) -> String {
         Token::Semicolon => String::from("Mark ;, "),
         Token::LeftCurl => String::from("Mark {, "),
         Token::RightCurl => String::from("Mark }, "),
+        Token::Comma => String::from("Mark \",\", "),
         Token::Identity(name) => format!("Var [{}], ", name.clone()),
         Token::Return => String::from("Return, "),
         Token::If => String::from("If, "),
@@ -193,10 +201,10 @@ pub fn sprint_token(token: &Token) -> String {
     };
 }
 
-pub fn sprint_token_iter<'a>(token_iter: TokenIter<'a>) -> String {
+pub fn sprint_token_iter(token_iter: TokenIter) -> String {
     let mut output = String::from("debug: ");
     for token in token_iter {
-        output.push_str(&sprint_token(&token));
+        output.push_str(sprint_token(&token).as_str());
     }
     return output;
 }
