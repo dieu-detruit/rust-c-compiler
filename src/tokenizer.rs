@@ -69,6 +69,12 @@ impl Token {
             _ => false,
         }
     }
+    pub fn is_comma(&self) -> bool {
+        match self {
+            Token::Comma => true,
+            _ => false,
+        }
+    }
 }
 
 impl Iterator for TokenIter {

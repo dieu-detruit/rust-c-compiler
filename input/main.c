@@ -10,5 +10,5 @@ if (test_for) {
         result = 3 * result;
     }
 }
-print();
+print(i, result, 11, 12, 13, 14, 15, 16);
 return result;

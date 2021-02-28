@@ -123,8 +123,11 @@ impl CodeGenerator {
                 println!("    ret");
             }
             /* 式(expression) */
-            Node::FunctionCall(name) => {
-                println!("    call {}", name)
+            Node::FunctionCall(name, arg_list) => {
+                for (order, arg) in arg_list.iter().enumerate().rev() {
+                    self.gen_function_arg(&arg, order);
+                }
+                println!("    call {}", name);
             }
             Node::Unary(unary_arg, _unary_type) => {
                 self.gen(&unary_arg);
@@ -191,5 +194,20 @@ impl CodeGenerator {
             Node::Empty => {}
         }
         return true;
+    }
+
+    pub fn gen_function_arg(&mut self, node: &Node, order: usize) {
+        // rdi, rsi, rdx, rcx, r8, r9
+        self.gen(node);
+        println!("    pop rax");
+        match order {
+            0 => println!("    mov rdi, rax"),
+            1 => println!("    mov rsi, rax"),
+            2 => println!("    mov rdx, rax"),
+            3 => println!("    mov rcx, rax"),
+            4 => println!("    mov r8, rax"),
+            5 => println!("    mov r9, rax"),
+            _ => println!("    push rax"),
+        }
     }
 }

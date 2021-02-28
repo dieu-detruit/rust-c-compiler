@@ -21,7 +21,7 @@ use crate::tokenizer::{sprint_token, sprint_token_iter, tokenize, Token, TokenIt
  * mul = unary ( "*" unary | "/" unary )*
  * unary = ( "+" | "-" )? primary
  * primary  = num
- *          | ident ( "(" ident? ( ident "," )* ")" )?
+ *          | ident ( "(" expr? ("," expr )* ")" )?
  *          | "(" expression ")"
  *
  */
@@ -350,20 +350,31 @@ impl Parser {
                 return if let Token::LeftParen = self.token_iter.clone().next().unwrap() {
                     // Function Call
                     self.token_iter.ignore(1);
-                    //let mut arg_list: Vec<Node> = Vec::new();
-                    //loop {
-                    //match self.token_iter.clone().next().unwrap() {
-                    //Token::Comma => {}
-                    //_ => {
-                    //arg_list.push(self.expression());
-                    ////match self.token_iter.clone().next().unwrap() {}
-                    //}
-                    //}
-                    //}
-                    if let Token::RightParen = self.token_iter.next().unwrap() {
-                        Node::FunctionCall(name)
-                    } else {
-                        panic!("Invalid Input");
+                    let mut arg_list: Vec<Node> = Vec::new();
+
+                    match self.token_iter.clone().next().unwrap() {
+                        Token::RightParen => {
+                            // Call func()
+                            self.token_iter.ignore(1);
+                            return Node::FunctionCall(name, arg_list);
+                        }
+                        _ => {
+                            arg_list.push(self.expression());
+                        }
+                    }
+                    loop {
+                        match self.token_iter.next().unwrap() {
+                            Token::RightParen => {
+                                // Call func(args)
+                                return Node::FunctionCall(name, arg_list);
+                            }
+                            Token::Comma => {
+                                arg_list.push(self.expression());
+                            }
+                            _ => {
+                                panic!("Invaid argument expression for function call {}", name);
+                            }
+                        }
                     }
                 } else {
                     // Variable
