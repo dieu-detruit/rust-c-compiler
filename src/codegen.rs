@@ -128,6 +128,7 @@ impl CodeGenerator {
                     self.gen_function_arg(&arg, order);
                 }
                 println!("    call {}", name);
+                println!("    push rax");
             }
             Node::Unary(unary_arg, _unary_type) => {
                 self.gen(&unary_arg);

@@ -386,8 +386,8 @@ impl Parser {
                                     offset: self.offset_last,
                                 },
                             );
-                            self.offset_last = self.offset_last + 8;
-                            Node::LVar(self.offset_last - 8)
+                            self.offset_last = self.offset_last + 32;
+                            Node::LVar(self.offset_last - 32)
                         }
                         Some(local_var) => Node::LVar(local_var.offset),
                     }
@@ -413,5 +413,5 @@ pub fn parse(prog: String) -> (Node, usize) {
         offset_last: 0,
     };
 
-    return (parser.program(), parser.offset_last - 8);
+    return (parser.program(), parser.offset_last - 32);
 }
