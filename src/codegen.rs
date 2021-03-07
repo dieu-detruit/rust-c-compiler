@@ -193,6 +193,7 @@ impl CodeGenerator {
                 }
             }
             Node::Empty => {}
+            _ => {}
         }
         return true;
     }

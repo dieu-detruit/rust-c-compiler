@@ -1,32 +1,4 @@
-pub enum Token {
-    // symbols
-    Plus,
-    Minus,
-    Asterisk,
-    Slash,
-    LeftParen,
-    RightParen,
-    Lt,
-    Gt,
-    Equal,
-    Exclamation,
-    Semicolon,
-    LeftCurl,
-    RightCurl,
-    Comma,
-    // literal
-    Num(i32),
-    // variable
-    Identity(String),
-    // reserved keyword
-    Return,
-    If,
-    Else,
-    For,
-    While,
-    // EOF
-    Eof,
-}
+use crate::token::Token;
 
 #[derive(Clone)]
 pub struct TokenIter {
@@ -35,46 +7,6 @@ pub struct TokenIter {
 
 pub fn tokenize(s: String) -> TokenIter {
     TokenIter { s: s.clone() }
-}
-
-impl Token {
-    pub fn expect_num(&self) -> i32 {
-        match self {
-            Token::Num(n) => *n,
-            _ => panic!("Invalid Code"),
-        }
-    }
-
-    pub fn is_leftparen(&self) -> bool {
-        match self {
-            Token::LeftParen => true,
-            _ => false,
-        }
-    }
-    pub fn is_rightparen(&self) -> bool {
-        match self {
-            Token::RightParen => true,
-            _ => false,
-        }
-    }
-    pub fn is_semicolon(&self) -> bool {
-        match self {
-            Token::Semicolon => true,
-            _ => false,
-        }
-    }
-    pub fn is_rightcurl(&self) -> bool {
-        match self {
-            Token::RightCurl => true,
-            _ => false,
-        }
-    }
-    pub fn is_comma(&self) -> bool {
-        match self {
-            Token::Comma => true,
-            _ => false,
-        }
-    }
 }
 
 impl Iterator for TokenIter {
@@ -135,6 +67,18 @@ impl TokenIter {
                         Some(Token::For)
                     } else if ident_s == "while" {
                         Some(Token::While)
+                    } else if ident_s == "Signed" {
+                        Some(Token::Signed)
+                    } else if ident_s == "Unsigned" {
+                        Some(Token::Unsigned)
+                    } else if ident_s == "Short" {
+                        Some(Token::Short)
+                    } else if ident_s == "Long" {
+                        Some(Token::Long)
+                    } else if ident_s == "Char" {
+                        Some(Token::Char)
+                    } else if ident_s == "int" {
+                        Some(Token::Int)
                     } else {
                         Some(Token::Identity(ident_s))
                     },
@@ -204,6 +148,7 @@ pub fn sprint_token(token: &Token) -> String {
         Token::For => String::from("For, "),
         Token::While => String::from("While, "),
         Token::Eof => String::from("EOF"),
+        _ => String::from(""),
     };
 }
 

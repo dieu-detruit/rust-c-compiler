@@ -1,13 +1,19 @@
 use std::collections::HashMap;
 
 use crate::node::{BinaryType, LVar, Node};
-use crate::tokenizer::{sprint_token, sprint_token_iter, tokenize, Token, TokenIter};
+use crate::token::Token;
+use crate::tokenizer::{sprint_token, sprint_token_iter, tokenize, TokenIter};
+use crate::typename::{parse_primitive_type, PrimitiveType};
 
 /*
  * 生成文法
  *
- * program = statement*
+ * program = function*
+ * function = ident "(" declaration? ("," declaration)* ")" "{" statement* "}"
+ * declaration = ident+ ident
  * statement    = expression ";"
+ *              | declaration ";"
+ *              | ident ident ";"
  *              | "{" statement* "}"
  *              | "if" "(" expression ")" statement ( "else" statement )?
  *              | "while" "(" expression ")" statement
@@ -23,6 +29,7 @@ use crate::tokenizer::{sprint_token, sprint_token_iter, tokenize, Token, TokenIt
  * primary  = num
  *          | ident ( "(" expr? ("," expr )* ")" )?
  *          | "(" expression ")"
+ *
  *
  */
 
@@ -40,6 +47,38 @@ impl Parser {
         }
         Node::Block(code)
     }
+
+    //pub fn function(&mut self) -> Node {}
+
+    //pub fn declaration(&mut self) -> (PrimitiveType, String) {
+    //// Identityの列を得る
+    //let mut ident_list: Vec<String> = Vec::new();
+    //ident_list.push(self.token_iter.next().unwrap());
+    //ident_list.push(self.token_iter.next().unwrap());
+    //if (ident_list[0].is_identity() || ident_list[1].is_identity) {
+    //panic("Invalid input for declaration");
+    //}
+    //while let Token::Identity(_) = self.token_iter.clone().next().unwrap_or(Token::Eof) {
+    //ident_list.push(self.token_iter.next().unwrap());
+    //}
+    //// パース
+    //let name = ident_list.pop();
+    //let typeType = parse_primitive_type(ident_list);
+
+    //}
+
+    //pub fn block(&mut self) -> Node {
+    //self.token_iter.ignore(1);
+    //let mut statements: Vec<Node> = Vec::new();
+    //loop {
+    //if let Token::RightCurl = self.token_iter.clone().next().unwrap_or(Token::Eof) {
+    //self.token_iter.ignore(1);
+    //return Node::Block(statements);
+    //} else {
+    //statements.push(self.statement());
+    //}
+    //}
+    //}
 
     pub fn statement(&mut self) -> Node {
         eprintln!("statement() called");

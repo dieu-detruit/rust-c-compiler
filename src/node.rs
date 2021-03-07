@@ -16,6 +16,7 @@ pub enum Node {
     For(Box<(Node, Node, Node, Node)>),
     While(Box<(Node, Node)>),
     Block(Vec<Node>),
+    Function(String, Vec<Node>),
     FunctionCall(String, Vec<Node>),
     Empty,
 }
@@ -123,5 +124,6 @@ pub fn sprint_node(node: &Node) -> String {
                 + "}"
         }
         Node::Empty => String::from("Do Nothing"),
+        _ => String::from(""),
     }
 }

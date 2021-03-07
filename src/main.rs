@@ -1,7 +1,9 @@
 pub mod codegen;
 pub mod node;
 pub mod parser;
+pub mod token;
 pub mod tokenizer;
+pub mod typename;
 
 use codegen::CodeGenerator;
 use node::sprint_node;
