@@ -37,7 +37,7 @@ pub enum Typename {
     UserDefined(String),
 }
 
-pub fn parse_userdefined_type(token_list: Vec<Token>) -> Typename {
+pub fn parse_userdefined_type(_token_list: Vec<Token>) -> Typename {
     Typename::UserDefined("Hoge".to_string())
 }
 
