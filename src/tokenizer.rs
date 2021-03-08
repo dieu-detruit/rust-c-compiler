@@ -56,34 +56,21 @@ impl TokenIter {
             }
             b'a'..=b'z' | b'_' => {
                 let (ident_s, remain_s) = split_identity(s);
-                (
-                    if ident_s == "return" {
-                        Some(Token::Return)
-                    } else if ident_s == "if" {
-                        Some(Token::If)
-                    } else if ident_s == "else" {
-                        Some(Token::Else)
-                    } else if ident_s == "for" {
-                        Some(Token::For)
-                    } else if ident_s == "while" {
-                        Some(Token::While)
-                    } else if ident_s == "Signed" {
-                        Some(Token::Signed)
-                    } else if ident_s == "Unsigned" {
-                        Some(Token::Unsigned)
-                    } else if ident_s == "Short" {
-                        Some(Token::Short)
-                    } else if ident_s == "Long" {
-                        Some(Token::Long)
-                    } else if ident_s == "Char" {
-                        Some(Token::Char)
-                    } else if ident_s == "int" {
-                        Some(Token::Int)
-                    } else {
-                        Some(Token::Identity(ident_s))
-                    },
-                    remain_s,
-                )
+                let token = match &*ident_s {
+                    "return" => Token::Return,
+                    "signed" => Token::Signed,
+                    "unsigned" => Token::Unsigned,
+                    "short" => Token::Short,
+                    "long" => Token::Long,
+                    "char" => Token::Char,
+                    "int" => Token::Int,
+                    "if" => Token::If,
+                    "else" => Token::Else,
+                    "for" => Token::For,
+                    "while" => Token::While,
+                    _ => Token::Identity(ident_s),
+                };
+                (Some(token), remain_s)
             }
             _ => (None, s),
         };
@@ -125,35 +112,35 @@ pub fn split_identity(s: String) -> (String, String) {
 }
 
 pub fn sprint_token(token: &Token) -> String {
-    return match token {
+    match token {
         Token::Num(n) => format!("Num: {}, ", n),
-        Token::Plus => String::from("Mark +, "),
-        Token::Minus => String::from("Mark -, "),
-        Token::Asterisk => String::from("Mark *, "),
-        Token::Slash => String::from("Mark /, "),
-        Token::LeftParen => String::from("Mark (, "),
-        Token::RightParen => String::from("Mark ), "),
-        Token::Lt => String::from("Mark <, "),
-        Token::Gt => String::from("Mark >, "),
-        Token::Equal => String::from("Mark =, "),
-        Token::Exclamation => String::from("Mark !, "),
-        Token::Semicolon => String::from("Mark ;, "),
-        Token::LeftCurl => String::from("Mark {, "),
-        Token::RightCurl => String::from("Mark }, "),
-        Token::Comma => String::from("Mark \",\", "),
+        Token::Plus => "Mark +, ".to_string(),
+        Token::Minus => "Mark -, ".to_string(),
+        Token::Asterisk => "Mark *, ".to_string(),
+        Token::Slash => "Mark /, ".to_string(),
+        Token::LeftParen => "Mark (, ".to_string(),
+        Token::RightParen => "Mark ), ".to_string(),
+        Token::Lt => "Mark <, ".to_string(),
+        Token::Gt => "Mark >, ".to_string(),
+        Token::Equal => "Mark =, ".to_string(),
+        Token::Exclamation => "Mark !, ".to_string(),
+        Token::Semicolon => "Mark ;, ".to_string(),
+        Token::LeftCurl => "Mark {, ".to_string(),
+        Token::RightCurl => "Mark }, ".to_string(),
+        Token::Comma => "Mark \",\", ".to_string(),
         Token::Identity(name) => format!("Var [{}], ", name.clone()),
-        Token::Return => String::from("Return, "),
-        Token::If => String::from("If, "),
-        Token::Else => String::from("Else, "),
-        Token::For => String::from("For, "),
-        Token::While => String::from("While, "),
-        Token::Eof => String::from("EOF"),
-        _ => String::from(""),
-    };
+        Token::Return => "Return, ".to_string(),
+        Token::If => "If, ".to_string(),
+        Token::Else => "Else, ".to_string(),
+        Token::For => "For, ".to_string(),
+        Token::While => "While, ".to_string(),
+        Token::Eof => "EOF".to_string(),
+        _ => String::new(),
+    }
 }
 
 pub fn sprint_token_iter(token_iter: TokenIter) -> String {
-    let mut output = String::from("debug: ");
+    let mut output = "debug: ".to_string();
     for token in token_iter {
         output.push_str(sprint_token(&token).as_str());
     }

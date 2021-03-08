@@ -50,30 +50,26 @@ impl Node {
 pub fn sprint_node(node: &Node) -> String {
     match node {
         Node::Num(n) => n.to_string(),
-        Node::Boolean(b) => {
-            if *b {
-                String::from("True")
-            } else {
-                String::from("False")
-            }
-        }
-        Node::Unary(_unary_arg, _unary_type) => String::from(""),
+        Node::Boolean(b) => if *b { "True" } else { "False" }.into(),
+        Node::Unary(_unary_arg, _unary_type) => String::new(),
         Node::Binary(binary_arg, binary_type) => {
             return match binary_type {
-                BinaryType::Add => String::from("+"),
-                BinaryType::Sub => String::from("-"),
-                BinaryType::Mul => String::from("*"),
-                BinaryType::Div => String::from("/"),
-                BinaryType::Lt => String::from("<"),
-                BinaryType::LtEq => String::from("<="),
-                BinaryType::NotEqual => String::from("!="),
-                _ => String::from(""),
-            } + format!(
-                "({0}, {1})",
-                &sprint_node(&binary_arg.0),
-                &sprint_node(&binary_arg.1)
-            )
-            .as_str()
+                BinaryType::Add => "+",
+                BinaryType::Sub => "-",
+                BinaryType::Mul => "*",
+                BinaryType::Div => "/",
+                BinaryType::Lt => "<",
+                BinaryType::LtEq => "<=",
+                BinaryType::NotEqual => "!=",
+                _ => "",
+            }
+            .to_string()
+                + format!(
+                    "({0}, {1})",
+                    &sprint_node(&binary_arg.0),
+                    &sprint_node(&binary_arg.1)
+                )
+                .as_str()
         }
         Node::LVar(offset) => format!("[var {}]", offset),
         Node::Assign(assign_arg) => {
@@ -118,12 +114,12 @@ pub fn sprint_node(node: &Node) -> String {
         Node::Block(statements) => {
             statements
                 .iter()
-                .fold(String::from("Block {\n"), |out, stmt| {
+                .fold("Block {\n".to_string(), |out, stmt| {
                     out + &sprint_node(&stmt) + "\n"
                 })
                 + "}"
         }
-        Node::Empty => String::from("Do Nothing"),
-        _ => String::from(""),
+        Node::Empty => "Do Nothing".to_string(),
+        _ => String::new(),
     }
 }
