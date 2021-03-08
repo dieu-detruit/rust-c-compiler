@@ -34,6 +34,34 @@ pub enum Token {
     Eof,
 }
 
+pub fn sprint_token(token: &Token) -> String {
+    match token {
+        Token::Num(n) => format!("Num: {}, ", n),
+        Token::Plus => "Mark +, ".to_string(),
+        Token::Minus => "Mark -, ".to_string(),
+        Token::Asterisk => "Mark *, ".to_string(),
+        Token::Slash => "Mark /, ".to_string(),
+        Token::LeftParen => "Mark (, ".to_string(),
+        Token::RightParen => "Mark ), ".to_string(),
+        Token::Lt => "Mark <, ".to_string(),
+        Token::Gt => "Mark >, ".to_string(),
+        Token::Equal => "Mark =, ".to_string(),
+        Token::Exclamation => "Mark !, ".to_string(),
+        Token::Semicolon => "Mark ;, ".to_string(),
+        Token::LeftCurl => "Mark {, ".to_string(),
+        Token::RightCurl => "Mark }, ".to_string(),
+        Token::Comma => "Mark \",\", ".to_string(),
+        Token::Identity(name) => format!("Var [{}], ", name.clone()),
+        Token::Return => "Return, ".to_string(),
+        Token::If => "If, ".to_string(),
+        Token::Else => "Else, ".to_string(),
+        Token::For => "For, ".to_string(),
+        Token::While => "While, ".to_string(),
+        Token::Eof => "EOF".to_string(),
+        _ => String::new(),
+    }
+}
+
 impl Token {
     pub fn expect_num(&self) -> i32 {
         match self {

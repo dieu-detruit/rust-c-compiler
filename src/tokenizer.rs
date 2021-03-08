@@ -1,4 +1,4 @@
-use crate::token::Token;
+use crate::token::{sprint_token, Token};
 
 #[derive(Clone)]
 pub struct TokenIter {
@@ -111,34 +111,6 @@ pub fn split_identity(s: String) -> (String, String) {
     (former.to_string(), latter.to_string())
 }
 
-pub fn sprint_token(token: &Token) -> String {
-    match token {
-        Token::Num(n) => format!("Num: {}, ", n),
-        Token::Plus => "Mark +, ".to_string(),
-        Token::Minus => "Mark -, ".to_string(),
-        Token::Asterisk => "Mark *, ".to_string(),
-        Token::Slash => "Mark /, ".to_string(),
-        Token::LeftParen => "Mark (, ".to_string(),
-        Token::RightParen => "Mark ), ".to_string(),
-        Token::Lt => "Mark <, ".to_string(),
-        Token::Gt => "Mark >, ".to_string(),
-        Token::Equal => "Mark =, ".to_string(),
-        Token::Exclamation => "Mark !, ".to_string(),
-        Token::Semicolon => "Mark ;, ".to_string(),
-        Token::LeftCurl => "Mark {, ".to_string(),
-        Token::RightCurl => "Mark }, ".to_string(),
-        Token::Comma => "Mark \",\", ".to_string(),
-        Token::Identity(name) => format!("Var [{}], ", name.clone()),
-        Token::Return => "Return, ".to_string(),
-        Token::If => "If, ".to_string(),
-        Token::Else => "Else, ".to_string(),
-        Token::For => "For, ".to_string(),
-        Token::While => "While, ".to_string(),
-        Token::Eof => "EOF".to_string(),
-        _ => String::new(),
-    }
-}
-
 pub fn sprint_token_iter(token_iter: TokenIter) -> String {
     let mut output = "debug: ".to_string();
     for token in token_iter {
@@ -152,22 +124,10 @@ mod test {
     use crate::tokenizer::{sprint_token_iter, tokenize, Token};
     #[test]
     fn tokenize_test() {
-        let prog = "1 + 2 + 3 + 4";
+        let prog = "1 + 2 + 3 + 4".to_string();
         let output = sprint_token_iter(tokenize(prog));
 
         panic!("{}", output);
-    }
-    #[test]
-    fn clone_tokeniter_test() {
-        let prog = "1 + 2 + 3 + 4";
-        let mut token_iter = tokenize(prog);
-        let token_iter_cp = token_iter.clone();
-
-        let original = sprint_token_iter(token_iter);
-        token_iter.next();
-        let cloned = sprint_token_iter(token_iter_cp);
-
-        panic!("\noriginal {0},\n cloned: {1}", original, cloned);
     }
 
     #[test]

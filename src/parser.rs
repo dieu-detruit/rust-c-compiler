@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::node::{BinaryType, LVar, Node};
-use crate::token::Token;
-use crate::tokenizer::{sprint_token, sprint_token_iter, tokenize, TokenIter};
+use crate::token::{sprint_token, Token};
+use crate::tokenizer::{sprint_token_iter, tokenize, TokenIter};
 use crate::typename::{parse_primitive_type, PrimitiveType};
 
 /*
@@ -56,7 +56,7 @@ impl Parser {
     //ident_list.push(self.token_iter.next().unwrap());
     //ident_list.push(self.token_iter.next().unwrap());
     //if (ident_list[0].is_identity() || ident_list[1].is_identity) {
-    //panic("Invalid input for declaration");
+    //panic!("Invalid input for declaration");
     //}
     //while let Token::Identity(_) = self.token_iter.clone().next().unwrap_or(Token::Eof) {
     //ident_list.push(self.token_iter.next().unwrap());
@@ -64,7 +64,6 @@ impl Parser {
     //// パース
     //let name = ident_list.pop();
     //let typeType = parse_primitive_type(ident_list);
-
     //}
 
     //pub fn block(&mut self) -> Node {
