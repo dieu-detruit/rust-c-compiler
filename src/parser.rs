@@ -3,18 +3,19 @@ use std::collections::HashMap;
 use crate::node::{BinaryType, LVar, Node};
 use crate::token::{sprint_token, Token};
 use crate::tokenizer::{sprint_token_iter, tokenize, TokenIter};
-use crate::typename::{parse_primitive_type, PrimitiveType};
+use crate::typename::{parse_typename, Typename};
 
 /*
  * 生成文法
  *
  * program = function*
- * function = ident "(" declaration? ("," declaration)* ")" "{" statement* "}"
+ * function = ident "(" declaration? ("," declaration)* ")" block
  * declaration = ident+ ident
+ * block = "{" statement* "}"
  * statement    = expression ";"
  *              | declaration ";"
  *              | ident ident ";"
- *              | "{" statement* "}"
+ *              | block
  *              | "if" "(" expression ")" statement ( "else" statement )?
  *              | "while" "(" expression ")" statement
  *              | "for" "(" expression? ";" expression? ";" expression? ")" statement
@@ -63,7 +64,7 @@ impl Parser {
     //}
     //// パース
     //let name = ident_list.pop();
-    //let typeType = parse_primitive_type(ident_list);
+    //let typename = parse_typename(ident_list);
     //}
 
     //pub fn block(&mut self) -> Node {

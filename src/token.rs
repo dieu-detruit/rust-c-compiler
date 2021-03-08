@@ -23,6 +23,7 @@ pub enum Token {
     Unsigned,
     Short,
     Long,
+    Void,
     Char,
     Int,
     Return,

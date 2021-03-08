@@ -1,3 +1,5 @@
+use crate::typename::Typename;
+
 pub struct LVar {
     pub offset: usize,
 }
@@ -16,7 +18,7 @@ pub enum Node {
     For(Box<(Node, Node, Node, Node)>),
     While(Box<(Node, Node)>),
     Block(Vec<Node>),
-    Function(String, Vec<Node>),
+    Function(String, Typename, Typename, Vec<Node>),
     FunctionCall(String, Vec<Node>),
     Empty,
 }

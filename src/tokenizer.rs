@@ -62,6 +62,7 @@ impl TokenIter {
                     "unsigned" => Token::Unsigned,
                     "short" => Token::Short,
                     "long" => Token::Long,
+                    "void" => Token::Void,
                     "char" => Token::Char,
                     "int" => Token::Int,
                     "if" => Token::If,

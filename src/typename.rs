@@ -30,7 +30,9 @@ pub enum PrimitiveType {
     Int,
 }
 
+#[derive(Clone)]
 pub enum Typename {
+    Void,
     Integer(SignedFlag, usize),
     UserDefined(String),
 }
@@ -39,7 +41,7 @@ pub fn parse_userdefined_type(token_list: Vec<Token>) -> Typename {
     Typename::UserDefined("Hoge".to_string())
 }
 
-pub fn parse_primitive_type(token_list: Vec<Token>) -> Typename {
+pub fn parse_typename(token_list: Vec<Token>) -> Typename {
     let mut signed_flag: Option<SignedFlag> = None;
     let mut size_modifier: Option<SizeModifier> = None;
     let mut primitive_type: Option<PrimitiveType> = None;
@@ -83,6 +85,18 @@ pub fn parse_primitive_type(token_list: Vec<Token>) -> Typename {
                     panic!("two or more data types in a declaration");
                 }
             }
+            Token::Void => {
+                if signed_flag.is_some() {
+                    panic!("void type cannot be modified with 'signed' or 'unsigned'");
+                }
+                if size_modifier.is_some() {
+                    panic!("void type cannot be modified with 'short' or 'long'");
+                }
+                if token_list.len() > 1 {
+                    panic!("void type cannot be modified with another keyword");
+                }
+                return Typename::Void;
+            }
             _ => {}
         };
     }
@@ -118,6 +132,7 @@ pub fn parse_primitive_type(token_list: Vec<Token>) -> Typename {
 
 pub fn sprint_typename(typename: &Typename) -> String {
     match typename {
+        Typename::Void => "void".to_string(),
         Typename::Integer(flag, size) => {
             if let SignedFlag::Signed = flag {
                 "Signed Integer(size: "
@@ -135,14 +150,15 @@ pub fn sprint_typename(typename: &Typename) -> String {
 #[cfg(test)]
 mod test {
     use crate::token::Token;
-    use crate::typename::{parse_primitive_type, sprint_typename};
+    use crate::typename::{parse_typename, sprint_typename};
 
     #[test]
     fn parse_test() {
         //let test_type = vec![Token::Unsigned, Token::Int, Token::Long];
         //let test_type = vec![Token::Unsigned, Token::Short];
-        let test_type = vec![Token::Char, Token::Short];
-        let typename = parse_primitive_type(test_type);
+        //let test_type = vec![Token::Char, Token::Short];
+        let test_type = vec![Token::Void];
+        let typename = parse_typename(test_type);
         panic!("typename: {}", sprint_typename(&typename));
     }
 }
