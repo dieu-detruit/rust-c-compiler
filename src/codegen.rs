@@ -14,6 +14,7 @@ impl CodeGenerator {
                 self.lines.push(format!("    mov rax, rbp"));
                 self.lines.push(format!("    sub rax, {}", offset));
                 self.lines.push(format!("    push rax"));
+                self.push_stack(8);
             }
             _ => {
                 panic!("Not LVar");
@@ -21,28 +22,63 @@ impl CodeGenerator {
         }
     }
 
-    fn pop(&mut self) {
-        self.current_stack_size -= self.current_stack_size;
+    fn pop_stack(&mut self, size: usize) {
+        eprintln!("at:");
+        for line in self.lines.iter() {
+            eprintln!("{}", line);
+        }
+        eprintln!(
+            "stack size: {} -> {}",
+            self.current_stack_size,
+            self.current_stack_size - size
+        );
+        self.current_stack_size -= size;
     }
 
-    fn push() {}
+    fn push_stack(&mut self, size: usize) {
+        eprintln!("at:");
+        for line in self.lines.iter() {
+            eprintln!("{}", line);
+        }
+        eprintln!(
+            "stack size: {} -> {}",
+            self.current_stack_size,
+            self.current_stack_size + size
+        );
+        self.current_stack_size += size;
+        if self.current_stack_size > self.max_stack_size {
+            self.max_stack_size = self.current_stack_size;
+        }
+    }
 
     // -> bool : require pop stack
     pub fn gen(&mut self, node: &Node) -> bool {
         match node {
             Node::Function(name, _return_type, _args, block) => {
+                self.max_stack_size = 0;
                 self.lines.push(format!("{}:", name));
                 self.lines.push(format!("    push rbp"));
+                self.push_stack(8);
                 self.lines.push(format!("    mov rbp, rsp"));
-                self.lines.push(format!("    sub rsp, {}", 32));
+                let line_to_insert = self.lines.len();
 
                 self.gen(block);
+                eprintln!(
+                    "function {} stack size: {} [byte]",
+                    name, self.max_stack_size
+                );
+                self.lines.insert(
+                    line_to_insert,
+                    format!("    sub rsp, {}", 8 * self.max_stack_size),
+                );
+                return false;
             }
             Node::Block(statements) => {
                 for statement in statements.iter() {
                     if self.gen(statement) {
                         // required to pop
                         self.lines.push(format!("    pop rax"));
+                        self.pop_stack(8);
                     }
                 }
                 return false;
@@ -53,12 +89,14 @@ impl CodeGenerator {
                 self.label_count = self.label_count + 1;
                 self.gen(&if_arg.0);
                 self.lines.push(format!("    pop rax"));
+                self.pop_stack(8);
                 self.lines.push(format!("    cmp rax, 0"));
                 self.lines.push(format!("    je .Lend{}", label));
                 // true case statement(s)
                 if self.gen(&if_arg.1) {
                     // required to pop
                     self.lines.push(format!("    pop rax"));
+                    self.pop_stack(8);
                 }
                 self.lines.push(format!(".Lend{}:", label));
                 return false;
@@ -68,13 +106,14 @@ impl CodeGenerator {
                 self.label_count = self.label_count + 1;
                 self.gen(&if_arg.0);
                 self.lines.push(format!("    pop rax"));
+                self.pop_stack(8);
                 self.lines.push(format!("    cmp rax, 0"));
                 self.lines.push(format!("    je .Lelse{}", label));
                 // true case statement(s)
                 if self.gen(&if_arg.1) {
                     // required to pop
                     self.lines.push(format!("    pop rax"));
-                    self.lines.push(format!("    pop rax"));
+                    self.pop_stack(8);
                 }
                 self.lines.push(format!("    jmp .Lend{}", label));
                 self.lines.push(format!(".Lelse{}:", label));
@@ -82,6 +121,7 @@ impl CodeGenerator {
                 if self.gen(&if_arg.2) {
                     // required to pop
                     self.lines.push(format!("    pop rax"));
+                    self.pop_stack(8);
                 }
                 self.lines.push(format!(".Lend{}:", label));
                 return false;
@@ -92,12 +132,14 @@ impl CodeGenerator {
                 self.lines.push(format!(".Lbegin{}:", label));
                 self.gen(&while_arg.0);
                 self.lines.push(format!("    pop rax"));
+                self.pop_stack(8);
                 self.lines.push(format!("    cmp rax, 0"));
                 self.lines.push(format!("    je .Lend{}", label));
                 // loop statement(s)
                 if self.gen(&while_arg.1) {
                     // if single statement
                     self.lines.push(format!("    pop rax"));
+                    self.pop_stack(8);
                 }
                 self.lines.push(format!("    jmp .Lbegin{}", label));
                 self.lines.push(format!(".Lend{}:", label));
@@ -110,12 +152,14 @@ impl CodeGenerator {
                 self.lines.push(format!(".Lbegin{}:", label));
                 self.gen(&for_arg.1); // loop condition
                 self.lines.push(format!("    pop rax"));
+                self.pop_stack(8);
                 self.lines.push(format!("    cmp rax, 0"));
                 self.lines.push(format!("    je .Lend{}", label));
                 // loop statement(s)
                 if self.gen(&for_arg.3) {
                     // if single statement
                     self.lines.push(format!("    pop rax"));
+                    self.pop_stack(8);
                 }
                 self.gen(&for_arg.2); // var update
                 self.lines.push(format!("    jmp .Lbegin{}", label));
@@ -127,35 +171,45 @@ impl CodeGenerator {
                 self.gen_lval(&assign_args.0);
                 self.gen(&assign_args.1);
                 self.lines.push(format!("    pop rdi"));
+                self.pop_stack(8);
                 self.lines.push(format!("    pop rax"));
+                self.pop_stack(8);
                 self.lines.push(format!("    mov [rax], rdi"));
                 self.lines.push(format!("    push rdi"));
+                self.push_stack(8);
             }
             /* return 文 (return statement) */
-            Node::Return(return_expr_optional) => match return_expr_optional {
-                None => {
-                    self.lines.push(format!("    ret"));
-                }
-                Some(return_expr) => {
-                    self.gen(&*return_expr);
-                    self.lines.push(format!("    pop rax"));
-                    self.lines.push(format!("    mov rsp, rbp"));
-                    self.lines.push(format!("    pop rbp"));
-                    self.lines.push(format!("    ret"));
-                }
-            },
+            Node::Return(return_expr_optional) => {
+                match return_expr_optional {
+                    None => {
+                        self.lines.push(format!("    ret"));
+                    }
+                    Some(return_expr) => {
+                        self.gen(&*return_expr);
+                        self.lines.push(format!("    pop rax"));
+                        self.pop_stack(8);
+                        self.lines.push(format!("    mov rsp, rbp"));
+                        self.lines.push(format!("    pop rbp"));
+                        self.pop_stack(8);
+                        self.lines.push(format!("    ret"));
+                    }
+                };
+                return false;
+            }
             /* 式(expression) */
             Node::FunctionCall(name, arg_list) => {
                 for (order, arg) in arg_list.iter().enumerate().rev() {
                     self.gen(arg);
                     if order < 6 {
                         self.lines.push(format!("    pop rax"));
+                        self.pop_stack(8);
                         let register_name = self.gen_function_arg_register(order);
                         self.lines.push(format!("    mov {}, rax", register_name));
                     }
                 }
                 self.lines.push(format!("    call {}", name));
                 self.lines.push(format!("    push rax"));
+                self.push_stack(8);
             }
             Node::Unary(unary_arg, _unary_type) => {
                 self.gen(&unary_arg);
@@ -167,7 +221,9 @@ impl CodeGenerator {
                 self.gen(&binary_arg.0);
                 self.gen(&binary_arg.1);
                 self.lines.push(format!("    pop rdi"));
+                self.pop_stack(8);
                 self.lines.push(format!("    pop rax"));
+                self.pop_stack(8);
                 match binary_type {
                     BinaryType::Add => {
                         self.lines.push(format!("    add rax, rdi"));
@@ -204,20 +260,27 @@ impl CodeGenerator {
                     }
                 }
                 self.lines.push(format!("    push rax"));
+                self.push_stack(8);
             }
             Node::LVar(_offset) => {
                 self.gen_lval(node);
                 self.lines.push(format!("    pop rax"));
+                self.pop_stack(8);
                 self.lines.push(format!("    mov rax, [rax]"));
                 self.lines.push(format!("    push rax"));
+                self.push_stack(8);
             }
-            Node::Num(n) => self.lines.push(format!("    push {}", n)),
+            Node::Num(n) => {
+                self.lines.push(format!("    push {}", n));
+                self.push_stack(8);
+            }
             Node::Boolean(flag) => {
                 if *flag {
                     self.lines.push(format!("    push 1"));
                 } else {
                     self.lines.push(format!("    push 0"));
                 }
+                self.push_stack(8);
             }
             Node::Empty => {}
         }
