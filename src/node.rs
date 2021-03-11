@@ -1,25 +1,44 @@
-use crate::typename::Typename;
+use crate::typename::{sprint_typename, Typename};
 
 pub struct LVar {
     pub offset: usize,
+    pub size: usize,
 }
+
+//pub struct Block<'a> {
+//parent: Option<&'a Block<'a>>,
+//pub local_vars: HashMap<String, LVar>,
+//pub local_var_size: usize,
+//}
+
+//impl Block<'_> {
+//pub fn get_var(&self, name: &str) -> Option<LVar> {
+//match self.local_vars.get(&name) {
+//None => match self.parent {
+//None => None,
+//Some(parent_ref) => parent_ref.get_var(name),
+//},
+//Some(var) => var,
+//}
+//}
+//}
 
 #[derive(Clone)]
 pub enum Node {
-    Unary(Box<Node>, UnaryType),
-    Binary(Box<(Node, Node)>, BinaryType),
-    Num(i32),
-    Boolean(bool),
-    LVar(usize),
-    Assign(Box<(Node, Node)>),
-    Return(Box<Node>),
-    If(Box<(Node, Node)>),
-    IfElse(Box<(Node, Node, Node)>),
-    For(Box<(Node, Node, Node, Node)>),
-    While(Box<(Node, Node)>),
-    Block(Vec<Node>),
-    Function(String, Vec<Typename>, Typename, Vec<Node>),
-    FunctionCall(String, Vec<Node>),
+    Unary(Box<Node>, UnaryType),           // arg, unary_type
+    Binary(Box<(Node, Node)>, BinaryType), // (arg1, arg2), binary_type
+    Num(i32),                              // n
+    Boolean(bool),                         // boolean_value
+    LVar(usize),                           // offset
+    Assign(Box<(Node, Node)>),             // lvalue, rvalue
+    Return(Option<Box<Node>>),             // return arg
+    If(Box<(Node, Node)>),                 // (cond, if_true)
+    IfElse(Box<(Node, Node, Node)>),       // (cond, if_true, else)
+    For(Box<(Node, Node, Node, Node)>),    // (init, cond, update, loop_content)
+    While(Box<(Node, Node)>),              // (cond, loop_content)
+    Block(Vec<Node>),                      // statement[]
+    Function(String, Typename, Vec<(Typename, usize)>, Box<Node>), // name,  return_type, arg[], block
+    FunctionCall(String, Vec<Node>),                               // name, arg[]
     Empty,
 }
 
@@ -81,7 +100,10 @@ pub fn sprint_node(node: &Node) -> String {
                 &sprint_node(&assign_arg.1)
             )
         }
-        Node::Return(return_arg) => format!("return {}", &sprint_node(&*return_arg)),
+        Node::Return(return_arg_optional) => match return_arg_optional {
+            None => format!("return nothing"),
+            Some(return_arg) => format!("return {}", &sprint_node(&*return_arg)),
+        },
         Node::If(if_arg) => format!(
             "If ({0}) Then {1}",
             &sprint_node(&if_arg.0),
@@ -113,6 +135,16 @@ pub fn sprint_node(node: &Node) -> String {
                 })
                 + ")"
         }
+        Node::Function(name, return_type, args, block) => {
+            format!(
+                "function (type: {0}({1}), name: {2})\n",
+                sprint_typename(return_type),
+                args.iter().fold(String::new(), |out, arg| {
+                    out + &sprint_typename(&arg.0) + ", "
+                }),
+                name
+            ) + &sprint_node(&block)
+        }
         Node::Block(statements) => {
             statements
                 .iter()
@@ -122,6 +154,5 @@ pub fn sprint_node(node: &Node) -> String {
                 + "}"
         }
         Node::Empty => "Do Nothing".to_string(),
-        _ => String::new(),
     }
 }

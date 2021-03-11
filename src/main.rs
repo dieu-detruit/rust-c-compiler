@@ -7,22 +7,33 @@ pub mod typename;
 
 use codegen::CodeGenerator;
 use node::sprint_node;
-use parser::parse;
+use parser::parse::parse;
+use tokenizer::{sprint_token_iter, tokenize};
 
 fn main() {
     let prog_string = std::env::args().nth(1).unwrap();
 
+    // Tokenize
+    let token_iter = tokenize(prog_string);
+    let output = sprint_token_iter(token_iter.clone());
+    eprintln!("tokenize result: {}", output);
+
+    // Parse
+    let code = parse(token_iter);
+
+    // Code Generation
+    let mut generator = CodeGenerator {
+        lines: Vec::new(),
+        label_count: 0,
+        max_stack_size: 0,
+        current_stack_size: 0,
+    };
+    eprintln!("parse result: {}", &sprint_node(&code));
+
     println!(".intel_syntax noprefix");
     println!(".globl main");
-    println!("main:");
-
-    let (code, local_var_size) = parse(prog_string);
-
-    println!("    push rbp");
-    println!("    mov rbp, rsp");
-    println!("    sub rsp, {}", local_var_size);
-
-    let mut generator = CodeGenerator { label_count: 0 };
-    eprintln!("debug: {}", &sprint_node(&code));
     generator.gen(&code);
+    for line in generator.lines {
+        println!("{}", line);
+    }
 }

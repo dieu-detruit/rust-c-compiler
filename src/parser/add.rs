@@ -1,18 +1,13 @@
 use crate::node::{BinaryType, Node};
-use crate::token::{sprint_token, Token};
+use crate::token::Token;
 
 use super::Parser;
 impl Parser {
     pub fn add(&mut self) -> Node {
-        eprintln!("add() called");
         let mut node = self.mul();
 
         loop {
-            let mut token_iter_cp = self.token_iter.clone();
-            let token = token_iter_cp.next().unwrap_or(Token::Eof);
-            eprintln!("current token: {}", sprint_token(&token));
-
-            match token {
+            match self.token_iter.peep().unwrap_or(Token::Eof) {
                 Token::Plus => {
                     self.token_iter.ignore(1);
                     node = Node::Binary(Box::new((node, self.mul())), BinaryType::Add);

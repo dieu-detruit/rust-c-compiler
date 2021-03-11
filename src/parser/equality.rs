@@ -1,16 +1,14 @@
 use crate::node::{BinaryType, Node};
-use crate::token::{sprint_token, Token};
+use crate::token::Token;
 
 use super::Parser;
 impl Parser {
     pub fn equality(&mut self) -> Node {
-        eprintln!("equality() called");
         let mut node = self.inequality();
 
         loop {
             let mut token_iter_cp = self.token_iter.clone();
             let token = token_iter_cp.next().unwrap_or(Token::Eof);
-            eprintln!("current token: {}", sprint_token(&token));
 
             match token {
                 Token::Equal => {

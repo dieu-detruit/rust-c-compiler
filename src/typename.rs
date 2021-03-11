@@ -37,6 +37,20 @@ pub enum Typename {
     UserDefined(String),
 }
 
+pub fn is_typename_token(token: &Token) -> bool {
+    match token {
+        Token::Identity(_)
+        | Token::Signed
+        | Token::Unsigned
+        | Token::Short
+        | Token::Long
+        | Token::Void
+        | Token::Char
+        | Token::Int => true,
+        _ => false,
+    }
+}
+
 pub fn parse_userdefined_type(_token_list: Vec<Token>) -> Typename {
     Typename::UserDefined("Hoge".to_string())
 }

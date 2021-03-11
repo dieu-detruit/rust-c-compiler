@@ -52,14 +52,20 @@ pub fn sprint_token(token: &Token) -> String {
         Token::LeftCurl => "Mark {, ".to_string(),
         Token::RightCurl => "Mark }, ".to_string(),
         Token::Comma => "Mark \",\", ".to_string(),
-        Token::Identity(name) => format!("Var [{}], ", name.clone()),
+        Token::Identity(name) => format!("Identity [{}], ", name.clone()),
+        Token::Signed => "Signed, ".to_string(),
+        Token::Unsigned => "Unsigned, ".to_string(),
+        Token::Short => "Short, ".to_string(),
+        Token::Long => "Long, ".to_string(),
+        Token::Void => "Void, ".to_string(),
+        Token::Char => "Char, ".to_string(),
+        Token::Int => "Int, ".to_string(),
         Token::Return => "Return, ".to_string(),
         Token::If => "If, ".to_string(),
         Token::Else => "Else, ".to_string(),
         Token::For => "For, ".to_string(),
         Token::While => "While, ".to_string(),
         Token::Eof => "EOF".to_string(),
-        _ => String::new(),
     }
 }
 
@@ -86,6 +92,12 @@ impl Token {
     pub fn is_semicolon(&self) -> bool {
         match self {
             Token::Semicolon => true,
+            _ => false,
+        }
+    }
+    pub fn is_leftcurl(&self) -> bool {
+        match self {
+            Token::LeftCurl => true,
             _ => false,
         }
     }

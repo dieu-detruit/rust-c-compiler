@@ -1,36 +1,24 @@
 use crate::node::Node;
-use crate::token::{sprint_token, Token};
+use crate::token::Token;
 
 use super::Parser;
 
 impl Parser {
     pub fn statement(&mut self) -> Node {
-        eprintln!("statement() called");
-
-        let mut token_iter_cp = self.token_iter.clone();
-        let token = token_iter_cp.next().unwrap_or(Token::Eof);
-        eprintln!("current token: {}", sprint_token(&token));
-
-        return match token {
-            Token::LeftCurl => {
-                self.token_iter.ignore(1);
-                let mut statements: Vec<Node> = Vec::new();
-                loop {
-                    if let Token::RightCurl = self.token_iter.clone().next().unwrap_or(Token::Eof) {
-                        self.token_iter.ignore(1);
-                        return Node::Block(statements);
-                    } else {
-                        statements.push(self.statement());
-                    }
-                }
-            }
+        return match self.token_iter.peep().unwrap_or(Token::Eof) {
+            Token::LeftCurl => self.block(),
             Token::Return => {
                 self.token_iter.ignore(1);
-                let return_expression = self.expression();
-                if let Token::Semicolon = self.token_iter.next().unwrap_or(Token::Eof) {
-                    Node::Return(Box::new(return_expression))
+                if let Token::Semicolon = self.token_iter.peep().unwrap_or(Token::Eof) {
+                    self.token_iter.ignore(1);
+                    Node::Return(None)
                 } else {
-                    panic!("Missing Semicolon")
+                    let return_expression = self.expression();
+                    if let Token::Semicolon = self.token_iter.next().unwrap_or(Token::Eof) {
+                        Node::Return(Some(Box::new(return_expression)))
+                    } else {
+                        panic!("Missing Semicolon at the end of the statement")
+                    }
                 }
             }
             Token::If => {
@@ -48,7 +36,7 @@ impl Parser {
                 // statement executed if true
                 let statement_true = self.statement();
 
-                if let Token::Else = self.token_iter.clone().next().unwrap_or(Token::Eof) {
+                if let Token::Else = self.token_iter.peep().unwrap_or(Token::Eof) {
                     self.token_iter.ignore(1);
                     Node::IfElse(Box::new((cond, statement_true, self.statement())))
                 } else {
@@ -62,20 +50,19 @@ impl Parser {
                     panic!("Missing '(' in \"for\" statement");
                 }
                 // initialize expression
-                let initialize_expression = if let Token::Semicolon =
-                    self.token_iter.clone().next().unwrap_or(Token::Eof)
-                {
-                    Node::Empty
-                } else {
-                    self.expression()
-                };
+                let initialize_expression =
+                    if let Token::Semicolon = self.token_iter.peep().unwrap_or(Token::Eof) {
+                        Node::Empty
+                    } else {
+                        self.expression()
+                    };
                 // expect ";"
                 if !self.token_iter.next().unwrap_or(Token::Eof).is_semicolon() {
                     panic!("Missing first ';' in \"for\" statement");
                 }
                 // loop condition
                 let loop_condition =
-                    if let Token::Semicolon = token_iter_cp.next().unwrap_or(Token::Eof) {
+                    if let Token::Semicolon = self.token_iter.peep().unwrap_or(Token::Eof) {
                         Node::Boolean(true)
                     } else {
                         self.expression()
@@ -86,7 +73,7 @@ impl Parser {
                 }
                 // update expression
                 let update_expression =
-                    if let Token::RightParen = token_iter_cp.next().unwrap_or(Token::Eof) {
+                    if let Token::RightParen = self.token_iter.next().unwrap_or(Token::Eof) {
                         self.token_iter.ignore(1);
                         Node::Empty
                     } else {

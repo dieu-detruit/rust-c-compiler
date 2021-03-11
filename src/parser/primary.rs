@@ -1,16 +1,11 @@
-use crate::node::{LVar, Node};
-use crate::token::{sprint_token, Token};
+use crate::node::Node;
+use crate::token::Token;
 
 use super::Parser;
 
 impl Parser {
     pub fn primary(&mut self) -> Node {
-        eprintln!("primary() called");
-
-        let token = self.token_iter.next().unwrap_or(Token::Eof);
-        eprintln!("current token: {}", sprint_token(&token));
-
-        return match token {
+        match self.token_iter.next().unwrap_or(Token::Eof) {
             Token::LeftParen => {
                 // ( expression )
                 let node_expression = self.expression();
@@ -52,25 +47,17 @@ impl Parser {
                     }
                 } else {
                     // Variable
-                    match self.local_vars.get(&name) {
-                        None => {
-                            self.local_vars.insert(
-                                name.clone(),
-                                LVar {
-                                    offset: self.offset_last,
-                                },
-                            );
-                            self.offset_last = self.offset_last + 32;
-                            Node::LVar(self.offset_last - 32)
-                        }
-                        Some(local_var) => Node::LVar(local_var.offset),
-                    }
+                    let var = self
+                        .local_vars
+                        .get(&(self.current_block_id.to_string() + &name))
+                        .expect("'{}' is not declared in this scope");
+                    Node::LVar(var.offset)
                 };
             }
             Token::Num(n) => Node::Num(n),
             _ => {
                 panic!("Invalid Input");
             }
-        };
+        }
     }
 }
