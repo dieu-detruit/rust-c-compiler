@@ -2,7 +2,7 @@ use crate::typename::{sprint_typename, Typename};
 
 pub struct LVar {
     pub offset: usize,
-    pub size: usize,
+    pub typename: Typename,
 }
 
 //pub struct Block<'a> {
@@ -29,7 +29,7 @@ pub enum Node {
     Binary(Box<(Node, Node)>, BinaryType), // (arg1, arg2), binary_type
     Num(i32),                              // n
     Boolean(bool),                         // boolean_value
-    LVar(usize),                           // offset
+    LVar(usize, Typename),                 // offset, typename
     Assign(Box<(Node, Node)>),             // lvalue, rvalue
     Return(Option<Box<Node>>),             // return arg
     If(Box<(Node, Node)>),                 // (cond, if_true)
@@ -37,8 +37,8 @@ pub enum Node {
     For(Box<(Node, Node, Node, Node)>),    // (init, cond, update, loop_content)
     While(Box<(Node, Node)>),              // (cond, loop_content)
     Block(Vec<Node>),                      // statement[]
-    Function(String, Typename, Vec<(Typename, usize)>, Box<Node>), // name,  return_type, arg[], block
-    FunctionCall(String, Vec<Node>),                               // name, arg[]
+    Function(String, Typename, Vec<Typename>, Box<Node>, usize), // name,  return_type, arg_type[], block, local_var_size
+    FunctionCall(String, Vec<Node>),                             // name, arg[]
     Empty,
 }
 
@@ -64,6 +64,13 @@ impl Node {
         match self {
             Node::Block(_) => true,
             _ => false,
+        }
+    }
+
+    pub fn expect_lvar(&self) -> (usize, Typename) {
+        match self {
+            Node::LVar(offset, typename) => (*offset, typename.clone()),
+            _ => panic!("unexpected node (expect: lvar)"),
         }
     }
 }
@@ -92,7 +99,9 @@ pub fn sprint_node(node: &Node) -> String {
                 )
                 .as_str()
         }
-        Node::LVar(offset) => format!("[var {}]", offset),
+        Node::LVar(offset, typename) => {
+            format!("[var {0}:{1}]", offset, sprint_typename(&typename))
+        }
         Node::Assign(assign_arg) => {
             format!(
                 "Assign {0} <- {1}",
@@ -135,12 +144,12 @@ pub fn sprint_node(node: &Node) -> String {
                 })
                 + ")"
         }
-        Node::Function(name, return_type, args, block) => {
+        Node::Function(name, return_type, arg_types, block, _local_var_size) => {
             format!(
                 "function (type: {0}({1}), name: {2})\n",
                 sprint_typename(return_type),
-                args.iter().fold(String::new(), |out, arg| {
-                    out + &sprint_typename(&arg.0) + ", "
+                arg_types.iter().fold(String::new(), |out, arg_type| {
+                    out + &sprint_typename(&arg_type) + ", "
                 }),
                 name
             ) + &sprint_node(&block)

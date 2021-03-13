@@ -1,10 +1,15 @@
 use crate::node::Node;
-use crate::token::Token;
+use crate::token::{sprint_token, Token};
 
 use super::Parser;
 
 impl Parser {
     pub fn primary(&mut self) -> Node {
+        eprintln!("primary()");
+        eprintln!(
+            "next token: {}",
+            sprint_token(&self.token_iter.peep().unwrap_or(Token::Eof))
+        );
         match self.token_iter.next().unwrap_or(Token::Eof) {
             Token::LeftParen => {
                 // ( expression )
@@ -16,8 +21,9 @@ impl Parser {
                 }
             }
             Token::Identity(name) => {
-                return if self.token_iter.clone().next().unwrap().is_leftparen() {
+                return if self.token_iter.peep().unwrap().is_leftparen() {
                     // Function Call
+                    eprintln!("this is function call");
                     self.token_iter.ignore(1);
                     let mut arg_list: Vec<Node> = Vec::new();
 
@@ -49,9 +55,9 @@ impl Parser {
                     // Variable
                     let var = self
                         .local_vars
-                        .get(&(self.current_block_id.to_string() + &name))
+                        .get(&name)
                         .expect("'{}' is not declared in this scope");
-                    Node::LVar(var.offset)
+                    Node::LVar(var.offset, var.typename.clone())
                 };
             }
             Token::Num(n) => Node::Num(n),

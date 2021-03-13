@@ -11,7 +11,6 @@ use std::collections::HashMap;
  * block = "{" statement* "}"
  * statement    = expression ";"
  *              | declaration ";"
- *              | ident ident ";"
  *              | block
  *              | "if" "(" expression ")" statement ( "else" statement )?
  *              | "while" "(" expression ")" statement
@@ -49,7 +48,5 @@ pub mod unary;
 pub struct Parser {
     token_iter: TokenIter,
     pub local_vars: HashMap<String, LVar>,
-    pub current_block_id: usize,
-    pub current_block_var_size: usize,
     pub offset_last: usize,
 }

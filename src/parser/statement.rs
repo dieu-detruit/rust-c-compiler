@@ -7,6 +7,7 @@ impl Parser {
     pub fn statement(&mut self) -> Node {
         return match self.token_iter.peep().unwrap_or(Token::Eof) {
             Token::LeftCurl => self.block(),
+            Token::Semicolon => Node::Empty,
             Token::Return => {
                 self.token_iter.ignore(1);
                 if let Token::Semicolon = self.token_iter.peep().unwrap_or(Token::Eof) {
@@ -103,6 +104,39 @@ impl Parser {
                     panic!("Missing ')' in \"while\" statement");
                 }
                 Node::While(Box::new((cond, self.statement())))
+            }
+            Token::Signed
+            | Token::Unsigned
+            | Token::Short
+            | Token::Long
+            | Token::Void
+            | Token::Char
+            | Token::Int => {
+                // typename keywords
+                let declaration = self.declaration().expect("invalid declaration");
+                if !self.token_iter.next().unwrap_or(Token::Eof).is_semicolon() {
+                    panic!("missing ';' after declaration statement");
+                }
+                declaration
+            }
+            Token::Identity(_) => {
+                // Identity -> declaration or expression
+                match self.declaration() {
+                    None => {
+                        let node = self.expression();
+                        if let Token::Semicolon = self.token_iter.next().unwrap_or(Token::Eof) {
+                            node
+                        } else {
+                            panic!("missing ';' after an expression statement");
+                        }
+                    }
+                    Some(declaration) => {
+                        if !self.token_iter.next().unwrap_or(Token::Eof).is_semicolon() {
+                            panic!("missing ';' after declaration statement");
+                        }
+                        declaration
+                    }
+                }
             }
             _ => {
                 let node = self.expression();

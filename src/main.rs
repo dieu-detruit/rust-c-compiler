@@ -1,6 +1,7 @@
 pub mod codegen;
 pub mod node;
 pub mod parser;
+pub mod register;
 pub mod token;
 pub mod tokenizer;
 pub mod typename;
@@ -25,8 +26,6 @@ fn main() {
     let mut generator = CodeGenerator {
         lines: Vec::new(),
         label_count: 0,
-        max_stack_size: 0,
-        current_stack_size: 0,
     };
     eprintln!("parse result: {}", &sprint_node(&code));
 

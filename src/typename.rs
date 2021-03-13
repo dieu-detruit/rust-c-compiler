@@ -51,6 +51,14 @@ pub fn is_typename_token(token: &Token) -> bool {
     }
 }
 
+pub fn sizeof(typename: &Typename) -> usize {
+    match typename {
+        Typename::Void => 0,
+        Typename::Integer(_, size) => *size,
+        _ => 0,
+    }
+}
+
 pub fn parse_userdefined_type(_token_list: Vec<Token>) -> Typename {
     Typename::UserDefined("Hoge".to_string())
 }
