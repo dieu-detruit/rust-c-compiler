@@ -74,7 +74,7 @@ impl Parser {
                 }
                 // update expression
                 let update_expression =
-                    if let Token::RightParen = self.token_iter.next().unwrap_or(Token::Eof) {
+                    if let Token::RightParen = self.token_iter.peep().unwrap_or(Token::Eof) {
                         self.token_iter.ignore(1);
                         Node::Empty
                     } else {

@@ -5,20 +5,22 @@ use crate::typename::{sizeof, Typename};
 pub struct CodeGenerator {
     pub lines: Vec<String>,
     pub label_count: usize,
+    pub rsp_sub_size: usize,
+    pub label_func: usize,
 }
 
 fn stack_align(size: usize) -> usize {
     if size % 16 == 0 {
         size
     } else {
-        16 * ((size / 16) + 1)
+        16 * ((size / 16) + 1) - 8
     }
 }
 
 pub fn gen_lval_ptr(offset: usize, typename: &Typename) -> String {
     match typename {
         Typename::Integer(_, size) => format!(
-            "{} PTR [rbp-{:#0}]",
+            "{} PTR [rbp-{:#0x}]",
             match size {
                 1 => "BYTE",
                 2 => "WORD",
@@ -26,7 +28,7 @@ pub fn gen_lval_ptr(offset: usize, typename: &Typename) -> String {
                 8 => "QWORD",
                 _ => "",
             },
-            offset
+            8 + offset
         ),
         _ => String::new(),
     }
@@ -38,10 +40,14 @@ impl CodeGenerator {
         match node {
             Node::Function(name, _return_type, arg_types, block, local_var_size) => {
                 self.lines.push(format!("{}:", name));
+                self.lines.push(format!("    endbr64"));
                 self.lines.push(format!("    push rbp"));
                 self.lines.push(format!("    mov rbp, rsp"));
+                self.lines.push(format!("    push rdx"));
+                // rbpをpushするぶんを合わせる
+                self.rsp_sub_size = stack_align(*local_var_size);
                 self.lines
-                    .push(format!("    sub rsp, {}", stack_align(*local_var_size)));
+                    .push(format!("    sub rsp, {:#0x}", self.rsp_sub_size));
                 // load arguments
                 let mut offset: usize = 0;
                 for (order, arg_type) in arg_types.iter().enumerate() {
@@ -58,6 +64,14 @@ impl CodeGenerator {
                     offset += sizeof(arg_type)
                 }
                 self.gen(&block);
+                // 終了処理
+                self.lines.push(format!(".Lendfunc{}:", self.label_func));
+                self.lines
+                    .push(format!("    add rsp, {:#0x}", self.rsp_sub_size));
+                self.lines.push(format!("    pop rdx"));
+                self.lines.push(format!("    pop rbp"));
+                self.lines.push(format!("    ret"));
+                self.label_func += 1;
                 return false;
             }
             Node::Block(statements) => {
@@ -138,7 +152,11 @@ impl CodeGenerator {
                     // if single statement
                     self.lines.push(format!("    pop rax"));
                 }
-                self.gen(&for_arg.2); // var update
+                // var update
+                if self.gen(&for_arg.2) {
+                    // if single statement
+                    self.lines.push(format!("    pop rax"));
+                }
                 self.lines.push(format!("    jmp .Lbegin{}", label));
                 self.lines.push(format!(".Lend{}:", label));
                 return false;
@@ -147,7 +165,7 @@ impl CodeGenerator {
             Node::Assign(assign_args) => {
                 self.gen(&assign_args.1);
                 self.lines.push(format!("    pop rdi"));
-                self.lines.push(format!("    pop rax"));
+                //self.lines.push(format!("    pop rax"));
                 let (offset, typename) = assign_args.0.expect_lvar();
                 self.lines.push(format!(
                     "    mov {}, {}",
@@ -158,18 +176,12 @@ impl CodeGenerator {
             }
             /* return 文 (return statement) */
             Node::Return(return_expr_optional) => {
-                match return_expr_optional {
-                    None => {
-                        self.lines.push(format!("    ret"));
-                    }
-                    Some(return_expr) => {
-                        self.gen(&*return_expr);
-                        self.lines.push(format!("    pop rax"));
-                        self.lines.push(format!("    mov rsp, rbp"));
-                        self.lines.push(format!("    pop rbp"));
-                        self.lines.push(format!("    ret"));
-                    }
-                };
+                if let Some(return_expr) = return_expr_optional {
+                    self.gen(&*return_expr);
+                    self.lines.push(format!("    pop rax"));
+                }
+                self.lines
+                    .push(format!("    jmp .Lendfunc{}", self.label_func));
                 return false;
             }
             /* 式(expression) */
@@ -242,7 +254,7 @@ impl CodeGenerator {
                 self.lines.push(format!("    push rax"));
             }
             Node::Num(n) => {
-                self.lines.push(format!("    push {}", n));
+                self.lines.push(format!("    push {:#0x}", n));
             }
             Node::Boolean(flag) => {
                 if *flag {
@@ -251,7 +263,9 @@ impl CodeGenerator {
                     self.lines.push(format!("    push 0"));
                 }
             }
-            Node::Empty => {}
+            Node::Empty => {
+                return false;
+            }
         }
         return true;
     }

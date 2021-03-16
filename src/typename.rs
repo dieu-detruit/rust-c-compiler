@@ -38,23 +38,18 @@ pub enum Typename {
 }
 
 pub fn is_typename_token(token: &Token) -> bool {
+    use Token::*;
     match token {
-        Token::Identity(_)
-        | Token::Signed
-        | Token::Unsigned
-        | Token::Short
-        | Token::Long
-        | Token::Void
-        | Token::Char
-        | Token::Int => true,
+        Identity(_) | Signed | Unsigned | Short | Long | Void | Char | Int => true,
         _ => false,
     }
 }
 
 pub fn sizeof(typename: &Typename) -> usize {
+    use Typename::*;
     match typename {
-        Typename::Void => 0,
-        Typename::Integer(_, size) => *size,
+        Void => 0,
+        Integer(_, size) => *size,
         _ => 0,
     }
 }

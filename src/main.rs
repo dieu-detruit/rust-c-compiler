@@ -26,6 +26,8 @@ fn main() {
     let mut generator = CodeGenerator {
         lines: Vec::new(),
         label_count: 0,
+        rsp_sub_size: 0,
+        label_func: 0,
     };
     eprintln!("parse result: {}", &sprint_node(&code));
 

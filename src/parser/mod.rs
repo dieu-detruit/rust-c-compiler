@@ -18,11 +18,12 @@ use std::collections::HashMap;
  *              | "return" expression ";"
  * expression = assign
  * assign = equality ( "=" assign )?
+ * //logical_binary = equality ( "&&" equality | "||" equality )*
  * equality = inequality ( "==" inequality | "!=" inequality )*
  * inequality = add ( "<" add | "<=" add | ">" add | ">=" add )*
  * add = mul ( "+" mul | "-" mul )*
  * mul = unary ( "*" unary | "/" unary )*
- * unary = ( "+" | "-" )? primary
+ * unary = ( "+" | "-" | "!" )? primary
  * primary  = num
  *          | ident ( "(" expr? ("," expr )* ")" )?
  *          | "(" expression ")"

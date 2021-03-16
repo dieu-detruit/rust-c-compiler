@@ -59,6 +59,23 @@ pub enum BinaryType {
     LtEq,
 }
 
+pub fn sizeof(node: &Node) {
+    use Node::*;
+    match node {
+        Unary(arg, unary_type) => {}
+        Binary(args, binary_type) => {}
+        Num(n) => {}
+        Boolean(f) => {}
+        LVar(offset, typename) => {}
+        Assign(_) | Return(_) | If(_) | IfElse(_) | For(_) | While(_) | Block(_) => {
+            panic!("statement cannot be the target of sizeof()")
+        }
+        Function(name, return_type, arg_types, block, local_var_size) => {}
+        FunctionCall(name, args) => panic!("sizeof function cannot be caluculated"),
+        Empty => {}
+    }
+}
+
 impl Node {
     pub fn is_block(&self) -> bool {
         match self {
@@ -76,19 +93,21 @@ impl Node {
 }
 
 pub fn sprint_node(node: &Node) -> String {
+    use Node::*;
     match node {
-        Node::Num(n) => n.to_string(),
-        Node::Boolean(b) => if *b { "True" } else { "False" }.into(),
-        Node::Unary(_unary_arg, _unary_type) => String::new(),
-        Node::Binary(binary_arg, binary_type) => {
+        Num(n) => n.to_string(),
+        Boolean(b) => if *b { "True" } else { "False" }.into(),
+        Unary(_unary_arg, _unary_type) => String::new(),
+        Binary(binary_arg, binary_type) => {
+            use BinaryType::*;
             return match binary_type {
-                BinaryType::Add => "+",
-                BinaryType::Sub => "-",
-                BinaryType::Mul => "*",
-                BinaryType::Div => "/",
-                BinaryType::Lt => "<",
-                BinaryType::LtEq => "<=",
-                BinaryType::NotEqual => "!=",
+                Add => "+",
+                Sub => "-",
+                Mul => "*",
+                Div => "/",
+                Lt => "<",
+                LtEq => "<=",
+                NotEqual => "!=",
                 _ => "",
             }
             .to_string()
@@ -97,46 +116,46 @@ pub fn sprint_node(node: &Node) -> String {
                     &sprint_node(&binary_arg.0),
                     &sprint_node(&binary_arg.1)
                 )
-                .as_str()
+                .as_str();
         }
-        Node::LVar(offset, typename) => {
+        LVar(offset, typename) => {
             format!("[var {0}:{1}]", offset, sprint_typename(&typename))
         }
-        Node::Assign(assign_arg) => {
+        Assign(assign_arg) => {
             format!(
                 "Assign {0} <- {1}",
                 &sprint_node(&assign_arg.0),
                 &sprint_node(&assign_arg.1)
             )
         }
-        Node::Return(return_arg_optional) => match return_arg_optional {
+        Return(return_arg_optional) => match return_arg_optional {
             None => format!("return nothing"),
             Some(return_arg) => format!("return {}", &sprint_node(&*return_arg)),
         },
-        Node::If(if_arg) => format!(
+        If(if_arg) => format!(
             "If ({0}) Then {1}",
             &sprint_node(&if_arg.0),
             &sprint_node(&if_arg.1)
         ),
-        Node::IfElse(if_arg) => format!(
+        IfElse(if_arg) => format!(
             "If ({0}) Then {1} Else {2}",
             &sprint_node(&if_arg.0),
             &sprint_node(&if_arg.1),
             &sprint_node(&if_arg.2)
         ),
-        Node::For(for_arg) => format!(
+        For(for_arg) => format!(
             "For ({0}; {1}; {2}) {3}",
             &sprint_node(&for_arg.0),
             &sprint_node(&for_arg.1),
             &sprint_node(&for_arg.2),
             &sprint_node(&for_arg.3)
         ),
-        Node::While(while_arg) => format!(
+        While(while_arg) => format!(
             "while ({0}) {1}",
             &sprint_node(&while_arg.0),
             &sprint_node(&while_arg.1)
         ),
-        Node::FunctionCall(name, arg_list) => {
+        FunctionCall(name, arg_list) => {
             arg_list
                 .iter()
                 .fold(format!("Call {} (", name), |out, arg| {
@@ -144,7 +163,7 @@ pub fn sprint_node(node: &Node) -> String {
                 })
                 + ")"
         }
-        Node::Function(name, return_type, arg_types, block, _local_var_size) => {
+        Function(name, return_type, arg_types, block, _local_var_size) => {
             format!(
                 "function (type: {0}({1}), name: {2})\n",
                 sprint_typename(return_type),
@@ -154,7 +173,7 @@ pub fn sprint_node(node: &Node) -> String {
                 name
             ) + &sprint_node(&block)
         }
-        Node::Block(statements) => {
+        Block(statements) => {
             statements
                 .iter()
                 .fold("Block {\n".to_string(), |out, stmt| {
@@ -162,6 +181,6 @@ pub fn sprint_node(node: &Node) -> String {
                 })
                 + "}"
         }
-        Node::Empty => "Do Nothing".to_string(),
+        Empty => "Do Nothing".to_string(),
     }
 }
