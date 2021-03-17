@@ -33,6 +33,7 @@ pub enum PrimitiveType {
 #[derive(Clone)]
 pub enum Typename {
     Void,
+    Boolean,
     Integer(SignedFlag, usize),
     UserDefined(String),
 }
@@ -40,7 +41,7 @@ pub enum Typename {
 pub fn is_typename_token(token: &Token) -> bool {
     use Token::*;
     match token {
-        Identity(_) | Signed | Unsigned | Short | Long | Void | Char | Int => true,
+        Identity(_) | Signed | Unsigned | Short | Long | Void | Char | Int | Boolean => true,
         _ => false,
     }
 }
@@ -49,6 +50,7 @@ pub fn sizeof(typename: &Typename) -> usize {
     use Typename::*;
     match typename {
         Void => 0,
+        Boolean => 1,
         Integer(_, size) => *size,
         _ => 0,
     }
@@ -150,16 +152,16 @@ pub fn parse_typename(token_list: Vec<Token>) -> Typename {
 pub fn sprint_typename(typename: &Typename) -> String {
     match typename {
         Typename::Void => "void".to_string(),
-        Typename::Integer(flag, size) => {
+        Typename::Boolean => "_Bool".to_string(),
+        Typename::Integer(flag, size) => format!(
+            "{} Integer (size: {})",
             if let SignedFlag::Signed = flag {
-                "Signed Integer(size: "
+                "Signed"
             } else {
-                "Unsigned Integer(size: "
-            }
-            .to_string()
-                + size.to_string().as_str()
-                + ")"
-        }
+                "Unsigned"
+            },
+            size
+        ),
         Typename::UserDefined(name) => name.to_string(),
     }
 }

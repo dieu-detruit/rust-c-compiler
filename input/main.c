@@ -1,3 +1,5 @@
+void print_num(int n);
+
 int fibonacci(int n)
 {
     if (n == 0) {

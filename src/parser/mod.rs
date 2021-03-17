@@ -1,4 +1,4 @@
-use crate::node::LVar;
+use crate::node::{Function, LVar};
 use crate::tokenizer::TokenIter;
 use std::collections::HashMap;
 
@@ -6,7 +6,7 @@ use std::collections::HashMap;
  * 生成文法
  *
  * program = function*
- * function = declaration "(" declaration? ("," declaration)* ")" block
+ * function = declaration "(" declaration? ("," declaration)* ")" block?
  * declaration = ident+ ident
  * block = "{" statement* "}"
  * statement    = expression ";"
@@ -49,5 +49,6 @@ pub mod unary;
 pub struct Parser {
     token_iter: TokenIter,
     pub local_vars: HashMap<String, LVar>,
+    pub functions: HashMap<String, Function>,
     pub offset_last: usize,
 }

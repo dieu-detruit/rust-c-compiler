@@ -5,6 +5,11 @@ pub struct LVar {
     pub typename: Typename,
 }
 
+pub struct Function {
+    pub ret_typename: Typename,
+    pub arg_typename: Vec<Typename>,
+}
+
 //pub struct Block<'a> {
 //parent: Option<&'a Block<'a>>,
 //pub local_vars: HashMap<String, LVar>,
@@ -57,23 +62,6 @@ pub enum BinaryType {
     NotEqual,
     Lt,
     LtEq,
-}
-
-pub fn sizeof(node: &Node) {
-    use Node::*;
-    match node {
-        Unary(arg, unary_type) => {}
-        Binary(args, binary_type) => {}
-        Num(n) => {}
-        Boolean(f) => {}
-        LVar(offset, typename) => {}
-        Assign(_) | Return(_) | If(_) | IfElse(_) | For(_) | While(_) | Block(_) => {
-            panic!("statement cannot be the target of sizeof()")
-        }
-        Function(name, return_type, arg_types, block, local_var_size) => {}
-        FunctionCall(name, args) => panic!("sizeof function cannot be caluculated"),
-        Empty => {}
-    }
 }
 
 impl Node {

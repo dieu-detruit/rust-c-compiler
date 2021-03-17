@@ -52,6 +52,7 @@ fn tokenize_str(input: &String) -> (Option<Token>, String) {
                 "short" => Token::Short,
                 "long" => Token::Long,
                 "void" => Token::Void,
+                "_Bool" => Token::Void,
                 "char" => Token::Char,
                 "int" => Token::Int,
                 "if" => Token::If,

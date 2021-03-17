@@ -27,6 +27,10 @@ impl Parser {
                     self.token_iter.ignore(1);
                     let mut arg_list: Vec<Node> = Vec::new();
 
+                    if self.functions.get(&name).is_none() {
+                        panic!("function named {} is not declared here", name);
+                    }
+
                     match self.token_iter.clone().next().unwrap() {
                         Token::RightParen => {
                             // Call func()

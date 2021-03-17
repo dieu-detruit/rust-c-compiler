@@ -1,4 +1,4 @@
-use crate::node::Node;
+use crate::node::{Function, Node};
 use crate::token::Token;
 use crate::typename::Typename;
 
@@ -52,15 +52,39 @@ impl Parser {
         let arg_list = self.parse_arglist();
 
         // { // do something }
-        eprintln!("call block() from function()");
-        let block = self.block();
-        eprintln!("block() returned to function()");
-        Node::Function(
-            name,
-            return_typename,
-            arg_list,
-            Box::new(block),
-            self.offset_last,
-        )
+        if self.token_iter.peep().unwrap_or(Token::Eof).is_semicolon() {
+            self.token_iter.ignore(1);
+            match self.functions.get(&name) {
+                Some(_) => panic!("redelaration of function named {}", name),
+                None => {
+                    self.functions.insert(
+                        name,
+                        Function {
+                            ret_typename: return_typename,
+                            arg_typename: arg_list,
+                        },
+                    );
+                }
+            };
+            Node::Empty
+        } else {
+            if self.functions.get(&name).is_none() {
+                self.functions.insert(
+                    name.clone(),
+                    Function {
+                        ret_typename: return_typename.clone(),
+                        arg_typename: arg_list.clone(),
+                    },
+                );
+            }
+            let block = self.block();
+            Node::Function(
+                name,
+                return_typename,
+                arg_list,
+                Box::new(block),
+                self.offset_last,
+            )
+        }
     }
 }
